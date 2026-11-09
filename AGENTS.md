@@ -111,6 +111,7 @@ node tools/browser-test.mjs tests/02-fall-damage.js /tmp/ekran.png   # ekran gö
 - Araç, testten önce `window.game.ready` olmasını (kaydın okunmasını) bekler.
 - Sayfa yenilemeyi gerektiren testler aşamalara bölünür ve birlikte verilir: `node tools/browser-test.mjs tests/04-save-a.js tests/04-save-b.js ...`. Her aşamadan önce sayfa yeniden açılır, IndexedDB korunur. Aşama dosyalarının adı `-a.js`, `-b.js` … ile biter.
 - Çıkış kodu: `0` geçti, `1` test başarısız ya da sayfada hata, `2` araç hatası.
+- **Video aracı:** `tools/video/` değişirse `node tools/video/selftest.mjs` çalıştır (ayrıntı SPEC.md "Video aracı").
 - **Bütün testler:** `node tools/run-tests.mjs` (ad filtresi verilebilir: `node tools/run-tests.mjs 14`). Aşamalı testler adlarının sonundaki `-a.js`, `-b.js` … ile gruplanıp birlikte çalışır. Her madde bittiğinde bütün testleri çalıştır.
 
 ### Elle deneme

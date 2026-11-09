@@ -1,2 +1,4 @@
 .DS_Store
 .idea/
+# Video aracının çıktıları (tools/video)
+videos/
