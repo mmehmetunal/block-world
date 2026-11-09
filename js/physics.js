@@ -13,7 +13,7 @@ function spawn() {
     return;
   }
   const x = SPAWN_X, z = SPAWN_Z;
-  let y = SY - 1;
+  let y = Math.min(SY - 1, columnTop(x, z));
   while (y > 0 && passable(get(x, y - 1, z))) y--;
   Object.assign(player, { x: x + 0.5, y: y, z: z + 0.5, vx: 0, vy: 0, vz: 0, kx: 0, kz: 0, fallPeak: null });
 }
@@ -31,15 +31,18 @@ function overlapsBlock(e, block) {
 }
 // Oyuncu ve canlılar için ortak AABB fiziği: e = { x, y, z, w, h, vx, vy, vz, onGround }
 // Bloğun hücre içindeki çarpışma kutuları [x0, y0, z0, x1, y1, z1]: şekil (shapes.js), kapı levhası (box), alçak blok (height) ya da tam hücre.
-const blockBoxes = (b, x, y, z) => BLOCKS[b].model === 'shape' ? shapeBoxes(b, x, y, z) : [BLOCKS[b].box || [0, 0, 0, 1, BLOCKS[b].height || 1, 1]];
+// tall bloklarda (çit, duvar) kutular 1,5 bloğa uzar.
+const blockBoxes = (b, x, y, z) => BLOCKS[b].model !== 'shape' ? [BLOCKS[b].box || [0, 0, 0, 1, BLOCKS[b].height || 1, 1]]
+  : BLOCKS[b].tall ? shapeBoxes(b, x, y, z).map(([x0, y0, z0, x1, , z1]) => [x0, y0, z0, x1, 1.5, z1]) : shapeBoxes(b, x, y, z);
 // e kutusu (x, y, z) konumundayken kesiştiği blok kutuları, dünya koordinatında. Dünya kenarı duvardır.
 function overlappingBoxes(e, x, y, z) {
   const boxes = [];
   for (let bx = Math.floor(x - e.w); bx <= Math.floor(x + e.w); bx++)
-    for (let by = Math.floor(y); by <= Math.floor(y + e.h - 0.001); by++)
+    // Bir alttaki hücreye de bakılır: 1,5 blokluk çit ve duvar üst hücreye taşar
+    for (let by = Math.floor(y) - 1; by <= Math.floor(y + e.h - 0.001); by++)
       for (let bz = Math.floor(z - e.w); bz <= Math.floor(z + e.w); bz++) {
         const b = get(bx, by, bz);
-        if (!isSolid(b)) continue;
+        if (!isSolid(b) || (by < Math.floor(y) && !BLOCKS[b].tall)) continue;
         for (const [x0, y0, z0, x1, y1, z1] of blockBoxes(b, bx, by, bz)) {
           const box = [bx + x0, by + y0, bz + z0, bx + x1, by + y1, bz + z1];
           if (x - e.w < box[3] && x + e.w > box[0] && y < box[4] && y + e.h > box[1] && z - e.w < box[5] && z + e.w > box[2]) boxes.push(box);

@@ -97,5 +97,6 @@ const CONNECTED = [
 for (const [key, name, shape, full, tile] of CONNECTED) {
   const base = full ? BLOCKS[B[full]] : { ...tiles(tile), breakTime: 2, tool: 'pickaxe' };
   addBlock(key, { name, top: base.top, side: base.side, bottom: base.bottom, breakTime: base.breakTime, tool: base.tool,
-    model: 'shape', shape, dir: [1, 0], flip: false, transparent: true, cutout: !full });
+    // tall: çit ve duvarın çarpışma kutusu 1,5 blok (Minecraft'taki gibi üstünden atlanamaz)
+    model: 'shape', shape, dir: [1, 0], flip: false, transparent: true, cutout: !full, tall: shape !== 'pane' });
 }

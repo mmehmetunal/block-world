@@ -26,6 +26,26 @@ RECIPES.push(
   { pattern: ['PPP', 'P.P', 'PPP'], keys: { P: 'planks' }, out: ['chest', 1] },
   { pattern: ['I', 'C'], keys: { I: 'iron_ingot', C: 'coal' }, out: ['flint_and_steel', 1] },
 );
+// Şekilli bloklar: her malzemenin merdiveni (iki yönlü desen) ve yarım bloğu; çit, duvar, parmaklık ve metal bloklar
+for (const [prefix, , full] of SHAPE_MATERIALS) {
+  RECIPES.push(
+    { pattern: ['M..', 'MM.', 'MMM'], keys: { M: full }, out: [prefix + '_stairs', 4] },
+    { pattern: ['..M', '.MM', 'MMM'], keys: { M: full }, out: [prefix + '_stairs', 4] },
+    { pattern: ['MMM'], keys: { M: full }, out: [prefix + '_slab', 6] },
+  );
+}
+for (const [key, , shape, full] of CONNECTED) {
+  if (shape === 'fence') RECIPES.push(full === 'nether_brick' ? { pattern: ['NNN', 'NNN'], keys: { N: full }, out: [key, 6] } : { pattern: ['PSP', 'PSP'], keys: { P: full, S: 'stick' }, out: [key, 3] });
+  if (shape === 'wall') RECIPES.push({ pattern: ['MMM', 'MMM'], keys: { M: full }, out: [key, 6] });
+}
+RECIPES.push(
+  { pattern: ['III', 'III'], keys: { I: 'iron_ingot' }, out: ['iron_bars', 16] },
+  { pattern: ['GGG', 'GGG'], keys: { G: 'glass' }, out: ['glass_pane', 16] },
+  { pattern: ['III', 'III', 'III'], keys: { I: 'iron_ingot' }, out: ['iron_block', 1] },
+  { pattern: ['B'], keys: { B: 'iron_block' }, out: ['iron_ingot', 9] },
+  { pattern: ['DDD', 'DDD', 'DDD'], keys: { D: 'diamond' }, out: ['diamond_block', 1] },
+  { pattern: ['B'], keys: { B: 'diamond_block' }, out: ['diamond', 9] },
+);
 for (const [tierKey, tier] of Object.entries(TOOL_TIERS)) for (const [kindKey, kind] of Object.entries(TOOL_KINDS)) {
   RECIPES.push({ pattern: kind.pattern, keys: { M: tier.material, S: 'stick' }, out: [`${tierKey}_${kindKey}`, 1] });
 }
