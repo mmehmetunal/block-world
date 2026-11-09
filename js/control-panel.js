@@ -16,7 +16,7 @@ const TOGGLES = {
   clouds: { on: () => settings.clouds, set: setClouds },
 };
 const tpInputs = ['x', 'y', 'z'].map(a => document.getElementById('tp-' + a));
-let confirmClear = false;
+let confirmClear = false, confirmBurj = false, confirmAnitkabir = false;
 const ACTIONS = {
   heal: healPlayer,
   feed: feedPlayer,
@@ -27,6 +27,19 @@ const ACTIONS = {
     return clearInventory();
   },
   items: () => { closeControl(); openPicker(); return null; },
+  // Araziyi düzlediği için ikinci basışta kurar
+  burj: button => {
+    if (!confirmBurj) { confirmBurj = true; button.textContent = 'Araziyi düzleyecek. Tekrar bas'; return null; }
+    confirmBurj = false;
+    closeControl();
+    return buildBurjKhalifa();
+  },
+  anitkabir: button => {
+    if (!confirmAnitkabir) { confirmAnitkabir = true; button.textContent = 'Alanı düzleyecek. Tekrar bas'; return null; }
+    confirmAnitkabir = false;
+    closeControl();
+    return buildAnitkabir();
+  },
   // Kutulardaki blok koordinatının ortasına
   tp: () => tpInputs.some(el => el.value === '') ? 'Üç koordinatı da yaz' : teleport(...tpInputs.map((el, i) => Number(el.value) + (i === 1 ? 0 : 0.5))),
   home: () => { spawn(); return 'Doğma noktasına döndün'; },
@@ -91,13 +104,15 @@ function renderControl() {
   controlEl.querySelectorAll('[data-distance]').forEach(b => b.classList.toggle('on', b.dataset.distance === settings.viewDistance));
   document.getElementById('control-clock').textContent = clockText().split(' · ')[1];
   if (!confirmClear) controlEl.querySelector('[data-action="clear"]').textContent = 'Envanteri boşalt';
+  if (!confirmBurj) controlEl.querySelector('[data-action="burj"]').textContent = 'Burj Khalifa kur (1:4 ölçek)';
+  if (!confirmAnitkabir) controlEl.querySelector('[data-action="anitkabir"]').textContent = 'Anıtkabir kur';
 }
 function openControl() {
   if (inventoryOpen) closeInventory();
   controlOpen = true;
   for (const k in keys) keys[k] = false;
   mining = false;
-  confirmClear = false;
+  confirmClear = confirmBurj = confirmAnitkabir = false;
   [player.x, player.y, player.z].forEach((v, i) => { tpInputs[i].value = Math.floor(v); });
   renderControl();
   controlEl.hidden = false;

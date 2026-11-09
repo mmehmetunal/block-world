@@ -63,6 +63,8 @@ tests/              otomatik testler
    | `renderer.js` | Renderer, sahne, kamera, ışıklar (`lightRigs`), kol sahnesi, chunk mesh'leri, seçim çerçevesi |
    | `shader-mode.js` | Shader modu: ışıklı malzeme (`shadedMaterial`), gölge (`worldSun`), köşe ortam gölgesi (`cornerAO`), dalgalı su, gökyüzü kubbesi, ton eşleme (`setShaderMode`, `updateShaderMode`) |
    | `ultra-view.js` | Ultra görüntü: hedef dokuya çizim, ışık parlaması (bloom) ve renk düzeltme geçişleri (`renderWorld`, `setUltraMode`) |
+   | `burj-khalifa.js` | Oyun içi 1:4 ölçekli Burj Khalifa (`placeBurjKhalifa`, `BURJ`) |
+   | `anitkabir.js` | Oyun içi Anıtkabir (`placeAnitkabir`, `ANITKABIR`) |
    | `shapes.js` | Şekilli blokların geometrisi, çarpışma kutuları (`shapeBoxes`), çizimi (`addShapeModel`), konma yönü (`shapeVariant`, `mergeSlab`), simge ve eldeki model (`shapeIcon`, `shapeMesh`) |
    | `day-cycle.js` | `clock`, `daylight()`, `clockText()`, `updateDayCycle()`, güneş ve ay |
    | `sky.js` | Bulutlar (`clouds`, `cloudTexture`) ve yıldızlar (`stars`), `updateSky()` |
@@ -101,7 +103,7 @@ tests/              otomatik testler
    | `sound.js` | `initAudio()`, `playNoise()`, `playTone()`, `blockSound()`, `hurtSound()`, `popSound()`, `MOB_SOUNDS`, `updateMobSounds()`, `updateSteps()`, `setSound()` |
    | `settings.js` | `settings`, `VIEW_DISTANCES`, `applySettings()`, `loadSettings()`, `saveSettings()`, `showSettings()` |
    | `chat.js` | Sohbet (`chatLine()`, `openChat()`, `closeChat()`), komutlar (`COMMANDS`, `submitChat()`), sohbet dışı eylemler `game-actions.js`'te |
-   | `game-actions.js` | Panel ve komutların ortak eylemleri: `godMode`, `safeMode`, `flyAllowed`, `flying`, `TIMES_OF_DAY`, `setGodMode()`, `setSafeMode()`, `setFlyAllowed()`, `healPlayer()`, `feedPlayer()`, `setTimeOfDay()`, `teleport()`, `clearInventory()`, `summonMob()`, `setSpawnHere()` |
+   | `game-actions.js` | Panel ve komutların ortak eylemleri: `godMode`, `safeMode`, `flyAllowed`, `flying`, `TIMES_OF_DAY`, `setGodMode()`, `setSafeMode()`, `setFlyAllowed()`, `healPlayer()`, `feedPlayer()`, `setTimeOfDay()`, `teleport()`, `clearInventory()`, `summonMob()`, `setSpawnHere()`, `buildBurjKhalifa()`, `buildAnitkabir()`, `setFog()`, `setClouds()` |
    | `recipe-book.js` | Tarif kitabı: `setBookOpen()`, `selectRecipe()`, `fillRecipe()`, `renderBookList()`, `renderBookDetail()`. `renderInventory` yüklenirken onu çağırdığı için `held-tool.js`'ten önce yüklenir |
    | `guide.js` | Adım adım rehber: `GUIDE_STEPS`, `guideFlags`, `updateGuide()`, `renderGuide()`, `setGuideShown()` |
    | `control-panel.js` | Kontrol paneli: `controlOpen`, `openControl()`, `closeControl()`, `renderControl()` |
@@ -114,7 +116,7 @@ tests/              otomatik testler
 ## Dünya
 
 - **Boyut:** Yatayda sonsuz, yükseklik `SY = 256` (yapı videoları için; arazi eskisi gibi en çok ~40 blok). Nether yalnızca alttaki `NETHER_H = 48` bloğu kullanır, üstü havadır. Dünya `CH = 16`'lık chunk'lardan oluşur; kenar duvarı yoktur.
-- **Veri:** Her dünya bir chunk haritasıdır: `worlds.overworld`, `worlds.nether` = `Map<"cx,cz", Uint16Array(16 × 256 × 16)>`, hücre indeksi `(y * 16 + lz) * 16 + lx` (`cellIndex`). Değer blok kimliğidir (16 bit, en çok 65.535), `0` hava. `chunkTop(c)` dolu en üst katmanın bir üstünü verir; chunk çizimi ve meşale taraması orada durur. `world` etkin dünyanın haritasıdır.
+- **Veri:** Her dünya bir chunk haritasıdır: `worlds.overworld`, `worlds.nether` = `Map<"cx,cz", Uint16Array(16 × 256 × 16)>`, hücre indeksi `(y * 16 + lz) * 16 + lx` (`cellIndex`). Değer blok kimliğidir (16 bit, en çok 65.535), `0` hava. `chunkTop(c)` dolu en üst katmanın bir üstünü verir; değer dizinin `top` alanında önbelleklenir, `set()` yükseltir (kırılan blok düşürmez). Chunk çizimi, meşale taraması, doğma noktası, canlı yüzeyi (`columnTop(x, z)`) ve bitki üretimi (arazi yüksekliği + 16'dan aşağı) bu yüzden 256 katmanın tamamını taramaz. `world` etkin dünyanın haritasıdır.
 - **Erişim:** `get(x, y, z)` yüklenmemiş chunk'ta ve `y ≥ SY`'de hava, `y < 0` için taş döndürür (altta delik görünmesin diye). `set(x, y, z, id)` yüklenmemiş chunk'ı yok sayar; üretim dışındaki her yazım chunk'ı değiştirilmiş sayar (`modifiedChunks[dimension]`) ve `onBlockSet`'i (sıvılar) çağırır. `inBounds` = yüklü chunk ve `0 ≤ y < SY`.
 - **Yükleme** (`chunk-loader.js`, oyun oynanırken her karede): çizim yarıçapı görüş mesafesine bağlıdır (40 / 70 / 120 / 200 blok → 3 / 5 / 8 / 13 chunk). Oyuncunun chunk'ından halka halka dışa doğru (`nearestChunk`), karede en çok 1 chunk verisi üretilir (yarıçap + 1) ve 2 mesh kurulur; mesh, chunk ve dört komşusunun verisi hazırsa kurulur (kenar yüzleri doğru çizilsin). Yarıçap + 1 dışındaki mesh'ler sahneden kaldırılır; `max(12, yarıçap + 2)` chunk ötedeki değişmemiş veri 2 sn'de bir bellekten silinir (değiştirilmiş chunk'lar kalır).
 - Açılışta doğma noktasının 3 chunk çevresi üretilir ve 2 chunk çevresi hemen çizilir; portaldan geçişte, ışınlanmada ve kayıt yüklenince de oyuncunun çevresi hemen hazırlanır (`buildAround`). Ekin ve portal taraması yalnızca değiştirilmiş chunk'lara bakar (`forEachModifiedCell`).
@@ -203,6 +205,7 @@ Su dışındaki bütün bloklar katı ve opaktır. `isSolid(b)`: hava, `fluid` v
 - `build-blocks.js` yeni blokları `addBlock(anahtar, tanım)` ile `BLOCKS` dizisinin sonuna ekler (kimlik 84'ten başlar, şu an ~900). Küpler: `BUILD_CUBES` tablosu ve 16 renk (`DYES`) için `<renk>_concrete`, `<renk>_wool`, `<renk>_stained_glass` (yarı saydam, saydam mesh'te). `emitsLight: true` olan bloklar (deniz feneri, lamba) meşale gibi ışık verir (`isLightSource`).
 - **Şekilli bloklar** `model: 'shape'` ve `shape` alanını taşır; geometri `shapes.js`'tedir. Yönlü aileler `SHAPE_MATERIALS` (23 malzeme) × `SHAPE_KINDS`: `stairs` (merdiven), `slab` (yarım blok), `slope` (45° eğim), `arch` (kemer parçası: altı, bakış yönündeki alt köşeyi merkez alan çeyrek daireyle oyulmuş), `corner` (yuvarlak köşe: çeyrek silindir), `pillar` (yuvarlak sütun). Eşya anahtarı `<malzeme>_<şekil>` (ör. `stone_brick_stairs`) ailenin ilk türevidir; diğer türevler gizlidir (`<aile>_<yön><ters>`), kırılınca aile eşyası düşer. Her türev `dir` (`BED_DIRS` yönü), `flip` (üst yarı), `family`, `full` (tam blok kimliği) taşır.
 - Bağlanan şekiller (tek kimlik): `fence` (çit), `pane` (demir/bronz parmaklık, cam panel), `wall` (duvar). Aynı türden komşulara ve tam opak küplere kol uzatır; komşu değişince chunk yeniden kurulduğu için kendiliğinden güncellenir.
+- **Üretim:** Her şekil malzemesinin merdiveni (6 tam blok → 4, iki yönlü desen) ve yarım bloğu (3 → 6); tahta çitler (tahta + çubuk → 3), Nether tuğlası çit (6 → 6), duvarlar (6 → 6), demir parmaklık (6 demir külçe → 16), cam panel (6 cam → 16), demir ve elmas bloğu (9 ↔ 1). Eğim, kemer, köşe, sütun ve renkli bloklar yalnızca eşya seçiciden.
 - **Konma:** Yön oyuncunun bakış yönüdür (merdivenin yüksek tarafı, eğimin yükselen tarafı ve kemerin açıklığı o yöndedir). Bir bloğun alt yüzüne ya da yan yüzünün üst yarısına tıklanınca ters türev konur. Yarım bloğun üst yüzüne (ters yarım blokta alt yüzüne) aynı yarım blok konunca hücre tam bloğa döner (`mergeSlab`).
 - **Çizim:** `addShapeModel` şeklin çokgenlerini opak mesh'e yazar; doku hücre koordinatından, yüzün normaline göre izdüşümle okunur (üst/alt/yan dokusu normalden). Hücre sınırındaki bir yüz, komşusu tam opak küpse ya da aynı kimlikteki komşuyla uzama ekseninde örtüşüyorsa çizilmez. Şekiller `transparent` sayılır, böylece yanlarındaki küplerin yüzleri çizilir.
 - **Simge:** Şekilli blokların simgesi şeklin modeli izometrik açıdan küçük bir hedefe çizilerek üretilir (`shapeIcon`); elde ve yerde de aynı model (`shapeMesh`) görünür.
@@ -285,6 +288,7 @@ Su dışındaki bütün bloklar katı ve opaktır. `isSolid(b)`: hava, `fluid` v
 | Koşma | 6,2 | blok/sn |
 
 - **Blok kutuları:** Her katı bloğun hücre içinde bir ya da daha çok çarpışma kutusu vardır (`blockBoxes(b, x, y, z)`): şekilli bloklarda `shapeBoxes` (eğim ve kemer 4 basamakla yaklaşık), `box` (kapı levhası), `height` (yatak 9/16) ya da tam hücre.
+- **Uzun bloklar:** `tall` (çit, duvar) çarpışma kutuları 1,5 bloğa uzar; `overlappingBoxes` bunun için bir alttaki hücreye de bakar. Üstlerinden atlanamaz.
 - **Basamak:** Yerdeki varlık yatayda en çok `STEP_HEIGHT = 0,6` yüksekliğinde bir kutuya çarparsa ve üstü boşsa onun üstüne çıkar (yarım blok, merdiven, eğim, yatak). `overlappingBoxes` varlığın kesiştiği kutuları bulur; `moveAxis` çarpışınca varlığı kutunun yüzüne dayar (yere iner, tavana değer, duvara yaslanır).
 - Çarpışma eksen eksen yapılır (`moveAxis(e, axis, d)`): önce x, sonra z, sonra y. `stepEntity(e, dt)` adım 0,4 bloktan büyükse alt adımlara böler ve yatayda çarpıp çarpmadığını döndürür. Aynı kod canlılar için de kullanılır; her varlık `{ x, y, z, w, h, vx, vy, vz, onGround }` taşır (`w` yarı genişlik). Kare süresi 0 ile 0,05 sn arasına sıkıştırılır.
 - **Su:** Oyuncunun kutusu suya (kaynak ya da akan, `isWater`) değiyorsa yürüme hızı %50, yerçekimi 1/4, batma hızı en çok `SINK_SPEED = 3`; Boşluk basılıyken `SWIM_UP_SPEED = 3` ile yukarı yüzer. Suya düşen düşme hasarı almaz. Kamera suyun içindeyse ekran mavi tonlanır (`#underwater`) ve sis 0–8 bloğa iner. Hayvanlar suya girmez; düşmanlar suya doğmaz.
@@ -669,6 +673,8 @@ Su dışındaki bütün bloklar katı ve opaktır. `isSolid(b)`: hava, `fluid` v
 | `/tp <x> <y> <z>` | Işınlar; `~` göreli (`~ ~5 ~`) |
 | `/clear` | Envanteri boşaltır |
 | `/summon <canlı>` | Bakılan yönde 3 blok öne canlı çağırır |
+| `/burj` | Önüne 1:4 ölçekli Burj Khalifa kurar (araziyi düzler) |
+| `/anitkabir` | Önüne Anıtkabir'i kurar (alanı düzler) |
 | `/spawnpoint` | Doğma noktasını buraya taşır |
 
 - Komut sohbet kapanmadan önce çalışır; komut bir panel açtıysa sohbet kapanırken fare kilitlenmez.
@@ -698,6 +704,7 @@ Su dışındaki bütün bloklar katı ve opaktır. `isSolid(b)`: hava, `fluid` v
   | Oyuncu | Canı doldur, Karnı doyur, Doğma noktası burası, Envanteri boşalt (ikinci basışta) | `healPlayer`, `feedPlayer`, `setSpawnHere`, `clearInventory` |
   | Eşyalar | Eşya seç ve al: paneli kapatıp eşya seçiciyi açar | `openPicker` |
   | Işınlan | X, Y, Z kutuları (açılınca oyuncunun konumu; Enter ışınlar), Işınlan, Doğma noktasına git | `teleport`, `spawn` |
+  | Yapılar | Burj Khalifa kur (1:4), Anıtkabir kur; araziyi düzledikleri için ikinci basışta kurar, panel kapanır | `buildBurjKhalifa`, `buildAnitkabir` |
   | Canlı çağır | Her `MOB_TYPES` için bir düğme; düşmanlar kırmızımsı yazı | `summonMob` |
 
 - Sohbet komutları aynı eylemleri çağırır; eylemler sonucu metin olarak döndürür (panelde bildirim, sohbette sarı satır). Yeni açılıp kapanabilen her özellik bu panele anahtar olarak eklenir.
@@ -723,7 +730,7 @@ Konsoldan ve testlerden erişim için `window.game` açıktır. Nesne ilk betikt
 ## Kayıt
 
 - Tarayıcının IndexedDB'si: veritabanı `block-world`, depo `saves`, tek kayıt anahtarı `world1`. Veri yalnızca o tarayıcıda ve o adreste durur (GitHub Pages adresi ile yerel dosyanın kayıtları ayrıdır).
-- **Kayıt nesnesi** (`SAVE_VERSION = 4`; sürüm 3 kayıtlarının 48 blokluk 8 bit chunk'ları 256 blokluk 16 bit diziye kopyalanır (`upgradeChunk`, hücre indeksi aynı kaldığından dizinin başına); sürüm 1–2 kayıtlarındaki 96×96 tek dizi açılışta chunk'lara bölünür ve hepsi değiştirilmiş sayılır, `loadLegacyWorld`):
+- **Kayıt nesnesi** (`SAVE_VERSION = 4`; kaydedilen chunk'ların boş üst katmanları atılır (`trimChunk`, dizi `chunkTop × 256` uzunluğunda), yüklerken tam boya tamamlanır; sürüm 3 kayıtlarının 48 blokluk 8 bit chunk'ları 256 blokluk 16 bit diziye kopyalanır (`upgradeChunk`, hücre indeksi aynı kaldığından dizinin başına); sürüm 1–2 kayıtlarındaki 96×96 tek dizi açılışta chunk'lara bölünür ve hepsi değiştirilmiş sayılır, `loadLegacyWorld`):
 
   | Alan | İçerik |
   | --- | --- |
@@ -822,6 +829,14 @@ Numaralar [minecraft-feature-list.md](minecraft-feature-list.md) ile aynıdır.
 | 60 | Burj Halife şablonu | Yapıldı |
 | 61 | Ultra görüntü | Yapıldı |
 | 62 | Kısa videolar ve dev heykel | Yapıldı |
+| 63 | Şekilli ve metal blok tarifleri, 1,5 blokluk çit ve duvar | Yapıldı |
+| 64 | Oyun içi Burj Khalifa ve Anıtkabir | Yapıldı |
+
+## Oyun içi yapılar
+
+- Kontrol panelindeki "Yapılar" bölümü ya da `/burj`, `/anitkabir` komutları; yalnızca ana dünyada. Kurulum `generatingChunk` açıkken yapılır (sıvı ve kayıt işleri blok blok çalışmaz), sonra değişen chunk'lar topluca değiştirilmiş sayılır ve yeniden kurulur.
+- **Burj Khalifa** (`burj-khalifa.js`): oyuncunun 34 blok önüne, 1 blok = 4 m (207 blok). Altıgen çekirdek ve 120° arayla üç kanat; kanatlar sarmal sırayla 24 kademede geri çekilir, gövde 146. katmanda biter, üstü çelik ibre ve en tepede ışıltı taşı. Cam cephe, her 4 katmanda taş tavan, zemin katta giriş; çevresi 33×33 kumtaşı meydan (arazi düzlenir).
+- **Anıtkabir** (`anitkabir.js`): 1 blok ≈ 1,5 m; yol oyuncunun baktığı ana yönde 8 blok önden başlar. Aslanlı Yol (175 blok, iki yanda 12'şer aslan ve ladin sıraları), tören meydanı (desenli döşeme) ve revaklar, on kule, yarıya inmiş bayrak, üç kademeli kaide ve merdiven üstünde sütunlu Şeref Holü ve lahit. Alan düzlenir, kenarlarda arazi 12 blokluk şevle birleşir.
 
 ## Video aracı (tools/video)
 

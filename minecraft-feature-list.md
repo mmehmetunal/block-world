@@ -613,6 +613,16 @@ Bu maddeler 37'den hemen sonra yapılır.
 - **Bu oyunda:** Video aracında hız eğrisi: kurulumun ortası 2x oynar, yarım saniyelik yumuşak geçiş ve köşede ">> 2x" rozeti; videolar 10–15 sn. Giriş ultra görünümde bitmiş yapıyı gösterir. İkinci örnek sahne: dövüş duruşunda özgün bir dev heykel (bakır, patina, parlayan gözler), kademeli kaide ve mazgallı sur.
 - **Bağımlılık:** 59, 60, 61
 
+### 63. Şekilli ve metal blok tarifleri, 1,5 blokluk çit ve duvar
+- **Bu oyunda:** Merdiven, yarım blok, çit, duvar, demir parmaklık, cam panel, demir ve elmas bloğu çalışma masasında üretilir (Minecraft desenleri). Çit ve duvarın çarpışması 1,5 blok: üstünden atlanamaz.
+- **Kabul ölçütü:** 3 tahtadan 6 yarım blok çıkıyor; çit sırasına zıplayarak geçilemiyor.
+- **Bağımlılık:** 16, 57
+
+### 64. Oyun içi Burj Khalifa ve Anıtkabir
+- **Bu oyunda:** Kontrol panelinden (ikinci basışta) ya da `/burj`, `/anitkabir` ile oyuncunun önüne 1:4 Burj Khalifa ve Anıtkabir kurulur; alan düzlenir, kayda girer.
+- **Kabul ölçütü:** Kule 207 blok, yukarı doğru daralıyor, yeniden yüklenince yerinde; Anıtkabir'de 24 aslan, meydan, kuleler, bayrak ve Şeref Holü var.
+- **Bağımlılık:** 45, 51, 54, 57
+
 ---
 
 ## İleride (şimdilik yapılmayacak)

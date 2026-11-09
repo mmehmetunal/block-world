@@ -113,6 +113,12 @@ const COMMANDS = {
     if (!kind) return chatLine(`Böyle bir canlı yok. Seçenekler: ${Object.values(MOB_TYPES).map(t => t.name).join(', ')}`, 'error');
     chatLine(summonMob(kind), 'info');
   } },
+  burj: { usage: '/burj', about: 'Önüne 1:4 ölçekli Burj Khalifa kurar (araziyi düzler)', run: () => {
+    chatLine(buildBurjKhalifa(), 'info');
+  } },
+  anitkabir: { usage: '/anitkabir', about: "Önüne Anıtkabir'i kurar (alanı düzler)", run: () => {
+    chatLine(buildAnitkabir(), 'info');
+  } },
   spawnpoint: { usage: '/spawnpoint', about: 'Doğma noktasını buraya taşır', run: () => {
     chatLine(setSpawnHere(), 'info');
   } },
