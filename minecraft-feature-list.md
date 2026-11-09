@@ -569,6 +569,41 @@ Bu maddeler 37'den hemen sonra yapılır.
 - **Kabul ölçütü:** Panelden uçma açılınca iki kez boşlukla havalanılıyor, boşluk/Shift ile yükselip alçalınıyor; yere inince düşme hasarı yok; anahtar kapalıyken iki kez boşluk sadece zıplatıyor.
 - **Bağımlılık:** 3, 51
 
+### 54. 256 blok dünya yüksekliği
+- **Neden:** Oyun yapı videoları için de kullanılıyor; 48 blokluk dünyada kule en fazla ~30 blok olabiliyordu.
+- **Bu oyunda:** `SY = 256`, Nether alttaki `NETHER_H = 48` bloğu kullanır. Blok kimliği 16 bit (`Uint16Array`), sınır 65.535. Kayıt sürümü 4; sürüm 1–3 kayıtları açılışta yeni boyuta çevrilir (eski dünyalar bozulmaz). Çizim ve meşale taraması chunk'ın dolu en üst katmanında durur.
+- **Kabul ölçütü:** y = 250'ye blok konup çiziliyor; eski (48 blok, 8 bit) kayıt aynı bloklarla yükleniyor; 255'ten büyük kimlik saklanıyor.
+- **Bağımlılık:** 4, 42
+
+### 55. Uzak görüş, sis ve bulut ayarları
+- **Bu oyunda:** Görüş mesafesine "Çok uzak" (200 blok) eklenir. Kontrol panelinde "Sis" (kapalıyken sis yalnızca görüş sınırında) ve "Bulutlar" anahtarları; ikisi de ayarlara yazılır. Bulutlar y = 192'ye çıkar. Kameranın uzak düzlemi görüş mesafesine göre büyür.
+- **Kabul ölçütü:** Panelden çok uzak görüş, sis ve bulut düğmeleri çalışıyor; yüksek yapılar sisten ve bulut katmanından kesilmiyor.
+- **Bağımlılık:** 30, 31, 51
+
+### 56. Yapı blokları
+- **Bu oyunda:** Metal ve maden blokları (demir, altın, elmas, zümrüt, lapis, kızıltaş, kömür, bakırın dört hali, bronz), demir ve bronz kafes, taş tuğla türleri, granit/diyorit/andezit ve cilalıları, kuvars, purpur, pişmiş kil, prizmarin, dört yeni tahta, huş ve koyu meşe kütüğü, kar, kil, çakıl, kitaplık, saman, ışık veren deniz feneri ve lamba; 16 renk beton, yün ve renkli cam. Hepsi eşya seçicide.
+- **Kabul ölçütü:** Bloklar eşya seçicide görünüyor, konuyor, simgeleri çiziliyor; lamba çevresini aydınlatıyor.
+- **Bağımlılık:** 48, 54
+
+### 57. Şekilli bloklar
+- **Bu oyunda:** 23 malzemenin her biri için merdiven, yarım blok, 45° eğim, kemer parçası, yuvarlak köşe ve yuvarlak sütun; çit, demir/bronz parmaklık, cam panel ve duvarlar komşularına bağlanır. Yönlü şekiller bakış yönüne döner; alt yüze ya da yan yüzün üst yarısına tıklanınca ters (üst yarı) konur. Yarım bloğun üstüne aynısı konunca tam blok olur. Merdiven, yarım blok ve eğime yürüyerek çıkılır (0,6 blok basamak).
+- **Kabul ölçütü:** Merdiven bakış yönüne dönük konuyor ve üstüne yürünerek çıkılıyor; yarım bloklar birleşiyor; çit komşusuna bağlanıyor; eğim ve kemer çarpışıyor.
+- **Bağımlılık:** 56
+
+### 58. Shader modu
+- **Bu oyunda:** Kontrol panelinde "Shader modu": güneşten gölgeler, köşe ortam gölgesi, sıcak tonlu gökyüzü ışığı, sinematik ton eşleme ve dalgalı, parlayan su. Kapalıyken oyun eskisi gibi çizilir.
+- **Kabul ölçütü:** Anahtar açılıp kapanıyor, açıkken bloklar gölge düşürüyor; kapalıyken görünüm değişmiyor.
+- **Bağımlılık:** 51
+
+### 59. Video aracı
+- **Bu oyunda:** `tools/video/`: oyunu görünmez Chrome'da açar, bir sahne dosyasındaki yapıyı adım adım kurarken dönen kamerayla kare kare kaydeder ve dikey (9:16) mp4 üretir (ffmpeg). Oyun dosyalarını değiştirmez.
+- **Kabul ölçütü:** Örnek sahneden oynatılabilir bir mp4 çıkıyor; kareler boş değil.
+- **Bağımlılık:** 54, 55
+
+### 60. Burj Halife şablonu
+- **Bu oyunda:** Video aracının örnek yapısı: Y planlı, kademeli daralan, metal ve camlı gökdelen ve sivri tepe (~240 blok). Kat kat kurulur.
+- **Bağımlılık:** 54, 56, 57, 59
+
 ---
 
 ## İleride (şimdilik yapılmayacak)

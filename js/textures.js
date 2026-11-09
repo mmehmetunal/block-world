@@ -4,7 +4,8 @@
 // Konsoldan ve testlerden erişim için ortak kanca nesnesi; diğer betikler buna ekler (bkz. SPEC.md "Test kancası").
 window.game = {};
 
-const T = 16, N_TILES = 52;
+// Atlas 192 dokuluk yer ayırır; 52. dokudan sonrası build-textures.js'te çizilir.
+const T = 16, N_TILES = 192;
 const TILE = {
   grassTop: 0, grassSide: 1, dirt: 2, stone: 3, logSide: 4, logTop: 5, leaves: 6, sand: 7, planks: 8, brick: 9, cobble: 10,
   craftingTop: 11, craftingSide: 12, furnaceFront: 13, furnaceTop: 14, sandstoneTop: 15, sandstoneSide: 16, furnaceLit: 17, glass: 18, coalOre: 19, ironOre: 20, water: 21, torch: 22, bedHeadTop: 23, bedFootTop: 24, bedSide: 25, doorLower: 26, doorUpper: 27, tallGrass: 28, poppy: 29, dandelion: 30, farmland: 31, wheat0: 32, wheat1: 33, wheat2: 34, wheat3: 35, obsidian: 36, netherrack: 37, lava: 38, glowstone: 39, chestTop: 40, chestSide: 41, diamondOre: 42, snowGrassTop: 43, snowGrassSide: 44, ice: 45, cactusSide: 46, cactusTop: 47, spruceLog: 48, spruceLeaves: 49, netherBrick: 50, spawner: 51,

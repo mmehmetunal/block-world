@@ -1,10 +1,11 @@
 // ---------- Dünya üretimi ----------
 // Dünya dizisi, gürültü fonksiyonları, biyomlar ve chunk başına dünya üretimi (arazi, mağara, göl, cevher, ağaç, bitki).
 
-const SY = 48, CH = 16, SEED = 20261106;
+// SY: dünya yüksekliği (yapı videoları için 256). Nether yalnızca alttaki NETHER_H bloğu kullanır.
+const SY = 256, NETHER_H = 48, CH = 16, SEED = 20261106;
 // Doğma noktası: başlangıç alanının (ilk 96×96 blok) ortası
 const SPAWN_X = 48, SPAWN_Z = 48;
-// Sonsuz dünya: chunk haritası "cx,cz" -> Uint8Array(CH × SY × CH), hücre indeksi (y * CH + lz) * CH + lx.
+// Sonsuz dünya: chunk haritası "cx,cz" -> Uint16Array(CH × SY × CH) (blok kimliği 16 bit), hücre indeksi (y * CH + lz) * CH + lx.
 // Etkin dünya (world) ana dünyanın ya da Nether'in haritasıdır; portaldan geçince değişir (nether.js).
 const worlds = { overworld: new Map(), nether: new Map() };
 let world = worlds.overworld;
@@ -15,6 +16,11 @@ const chunkAt = (x, z) => world.get(chunkKey(Math.floor(x / CH), Math.floor(z / 
 const cellIndex = (x, y, z) => (y * CH + (z - Math.floor(z / CH) * CH)) * CH + (x - Math.floor(x / CH) * CH);
 // Yüklü bir chunk'ın içinde mi
 const inBounds = (x, y, z) => y >= 0 && y < SY && !!chunkAt(x, z);
+// Chunk dizisinde dolu olan en yüksek katman + 1 (çizim ve meşale taraması üstteki boş havayı atlar)
+function chunkTop(c) {
+  for (let i = c.length - 1; i >= 0; i--) if (c[i]) return Math.floor(i / (CH * CH)) + 1;
+  return 0;
+}
 // Yüklenmemiş chunk hava döner; y < 0 taş (altta delik görünmesin).
 function get(x, y, z) {
   if (y < 0) return B.stone;
@@ -39,7 +45,7 @@ function ensureChunk(cx, cz, dim) {
   if (map.has(key)) return false;
   const previous = world;
   world = map;
-  map.set(key, new Uint8Array(CH * SY * CH));
+  map.set(key, new Uint16Array(CH * SY * CH));
   generatingChunk = true;
   (map === worlds.nether ? generateNetherChunk : generateChunk)(cx, cz);
   generatingChunk = false;

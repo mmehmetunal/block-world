@@ -1,9 +1,11 @@
 // ---------- Chunk yükleme ----------
 // Sonsuz dünya: oyuncu yürüdükçe çevresindeki chunk'lar üretilir ve çizilir, uzaktakiler kaldırılır.
 
-// Çizim yarıçapı görüş mesafesine bağlı (40 / 70 / 120 blok -> 3 / 5 / 8 chunk). Veri bir chunk fazla tutulur ki
+// Çizim yarıçapı görüş mesafesine bağlı (40 / 70 / 120 / 200 blok -> 3 / 5 / 8 / 13 chunk). Veri bir chunk fazla tutulur ki
 // kenar chunk'ların yüzleri doğru çizilsin. Değişmemiş chunk verisi 12 chunk ötede bellekten silinir.
 const DATA_KEEP_RADIUS = 12;
+// Veri en az çizim yarıçapı + 2 chunk tutulur (çok uzak görüşte 12'den büyük)
+const keepRadius = () => Math.max(DATA_KEEP_RADIUS, viewChunks() + 2);
 const viewChunks = () => Math.ceil(VIEW_DISTANCES[settings.viewDistance] / CH);
 // Oyuncunun chunk'ından halka halka dışa doğru, test(cx, cz) doğru olan ilk chunk
 function nearestChunk(radius, test) {
@@ -32,6 +34,6 @@ function updateChunks(dt) {
   unloadTimer -= dt;
   if (unloadTimer > 0) return;
   unloadTimer = 2;
-  for (const key of [...world.keys()]) if (far(key, DATA_KEEP_RADIUS) && !modifiedChunks[dimension].has(key)) world.delete(key);
+  for (const key of [...world.keys()]) if (far(key, keepRadius()) && !modifiedChunks[dimension].has(key)) world.delete(key);
 }
 Object.assign(window.game, { villagePlan, villageNear, ensureArea, updateChunks, chunkCount: () => world.size, meshCount: () => chunkMeshes.size, modifiedChunks });

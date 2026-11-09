@@ -45,8 +45,9 @@ armR.add(tpBlock);
 // Çapraz modelli bloklar (bitkiler) ve küpü olmayan bloklar düz simge olarak tutulur.
 const heldAsCube = s => {
   const id = ITEMS[s.key].block;
-  return !!id && !BLOCKS[id].model && !isTorch(id);
+  return !!id && (!BLOCKS[id].model || BLOCKS[id].model === 'shape') && !isTorch(id);
 };
+const cubeGeometries = [fpBlock.geometry, tpBlock.geometry];
 function updateHeldTool() {
   const s = inventory[selected];
   const cube = !!s && heldAsCube(s);
@@ -55,6 +56,13 @@ function updateHeldTool() {
   if (!s) return;
   if (cube) {
     const def = BLOCKS[ITEMS[s.key].block];
+    // Şekilli blok kendi modeliyle (küp boyunda) tutulur
+    const shaped = def.model === 'shape';
+    fpBlock.geometry = shaped ? shapeMesh(ITEMS[s.key].block) : cubeGeometries[0];
+    tpBlock.geometry = shaped ? shapeMesh(ITEMS[s.key].block) : cubeGeometries[1];
+    fpBlock.scale.setScalar(shaped ? 0.3 : 1);
+    tpBlock.scale.setScalar(shaped ? 0.25 : 1);
+    if (shaped) { fpBlock.material = tpBlock.material = shapeIconMaterial; return; }
     if (!blockMaterials[s.key]) {
       const [side, top, bottom] = [def.side, def.top, def.bottom].map(tileMaterial);
       blockMaterials[s.key] = [side, side, top, bottom, side, side];

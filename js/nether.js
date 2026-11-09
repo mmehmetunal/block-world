@@ -16,7 +16,7 @@ function generateNetherChunk(cx, cz) {
     const x = x0 + lx, z = z0 + lz;
     const floorTop = 3 + Math.floor(fbm(x / 20 + 500, z / 20 + 500) * 12);
     const ceilingBottom = 35 + Math.floor(fbm(x / 18 + 900, z / 18 + 900) * 8);
-    for (let y = 0; y < SY; y++) {
+    for (let y = 0; y < NETHER_H; y++) {
       let b = AIR;
       if (y <= floorTop || y >= ceilingBottom) b = B.netherrack;
       // Boşluğun içinde kızıl taş sütunlar ve kayalar
@@ -29,7 +29,7 @@ function generateNetherChunk(cx, cz) {
   const nr = chunkRandom(cx, cz, 101);
   const clusters = nr() < 0.25 ? 2 : 1;
   for (let i = 0; i < clusters; i++) {
-    let x = x0 + Math.floor(nr() * CH), z = z0 + Math.floor(nr() * CH), y = SY - 2;
+    let x = x0 + Math.floor(nr() * CH), z = z0 + Math.floor(nr() * CH), y = NETHER_H - 2;
     while (y > 12 && get(x, y, z) !== AIR) y--;
     if (y <= 12 || get(x, y + 1, z) !== B.netherrack) continue;
     const size = 3 + Math.floor(nr() * 6);

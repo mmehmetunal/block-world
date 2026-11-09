@@ -1,8 +1,8 @@
 // ---------- Bulutlar ve yıldızlar ----------
-// Bulutlar: y = 60'ta düz bir katman; her doku pikseli 4x4 bloğa denk gelir, gürültüyle şekillenir,
+// Bulutlar: y = 192'de düz bir katman (256 blokluk dünyada yapıların üstünde kalsın; panelden kapatılabilir); her doku pikseli 4x4 bloğa denk gelir, gürültüyle şekillenir,
 // doğuya (+x) 0,6 blok/sn kayar ve oyuncuyla birlikte tekrarlanır. Yıldızlar: gece görünen 400 nokta.
 
-const CLOUD_HEIGHT = 60, CLOUD_CELL = 4, CLOUD_TEXELS = 64, CLOUD_SPEED = 0.6, CLOUD_SPAN = 384;
+const CLOUD_HEIGHT = 192, CLOUD_CELL = 4, CLOUD_TEXELS = 64, CLOUD_SPEED = 0.6, CLOUD_SPAN = 768;
 const cloudTexture = (() => {
   const c = document.createElement('canvas');
   c.width = c.height = CLOUD_TEXELS;
@@ -42,7 +42,8 @@ const stars = (() => {
 
 function updateSky(dt) {
   // Nether'de bulut ve yıldız yok
-  clouds.visible = stars.visible = dimension === 'overworld';
+  stars.visible = dimension === 'overworld';
+  clouds.visible = stars.visible && settings.clouds;
   if (playing) cloudDrift += CLOUD_SPEED * dt;
   // Katman oyuncunun üstünde durur; doku dünyaya sabit kalacak şekilde kaydırılır.
   clouds.position.set(camera.position.x, CLOUD_HEIGHT, camera.position.z);

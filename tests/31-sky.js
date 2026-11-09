@@ -4,7 +4,7 @@ document.getElementById('play').click();
 for (let i = 0; i < 100 && !p.onGround; i++) await wait(50);
 g.clock.time = 0.25;
 await wait(300);
-const atHeight = Math.abs(g.clouds.position.y - 60) < 0.01;
+const atHeight = Math.abs(g.clouds.position.y - 192) < 0.01;
 // Bulutlar 0,6 blok/sn doğuya kayar
 const d0 = g.cloudDrift(), t0 = performance.now();
 await wait(2000);

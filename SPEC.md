@@ -22,7 +22,7 @@ Bu belge oyunun **şu anki** halini anlatır. Bir özellik eklendiğinde ya da b
 index.html          sayfa iskeleti: HUD ve panel öğeleri, betiklerin yükleme sırası
 css/style.css       bütün stiller
 js/*.js             oyun betikleri (aşağıdaki sırayla)
-tools/              test araçları (oyunun parçası değil)
+tools/              test ve video araçları (oyunun parçası değil); tools/video/ yapı videosu kaydedici
 tests/              otomatik testler
 ```
 
@@ -56,9 +56,13 @@ tests/              otomatik testler
    | Dosya | İçerik |
    | --- | --- |
    | `textures.js` | 16×16 piksellik doku atlası, `TILE` sabitleri, `tileImage()` |
+   | `build-textures.js` | Yapı bloklarının dokuları (`paintTile`), 16 renk tablosu `DYES` |
    | `blocks.js` | `BLOCKS` tanımları, `B` kısaltmaları |
+   | `build-blocks.js` | Yapı küpleri, şekilli blok aileleri (`SHAPE_FAMILIES`, `SHAPE_MATERIALS`), bağlanan şekiller (`addBlock`) |
    | `world-gen.js` | Chunk haritası (`worlds`, `world`, `modifiedChunks`), `get/set`, `ensureChunk()`, `ensureArea()`, gürültü fonksiyonları, biyomlar, `generateChunk()` |
    | `renderer.js` | Renderer, sahne, kamera, ışıklar (`lightRigs`), kol sahnesi, chunk mesh'leri, seçim çerçevesi |
+   | `shader-mode.js` | Shader modu: ışıklı malzeme (`shadedMaterial`), gölge (`worldSun`), köşe ortam gölgesi (`cornerAO`), dalgalı su, gökyüzü kubbesi, ton eşleme (`setShaderMode`, `updateShaderMode`) |
+   | `shapes.js` | Şekilli blokların geometrisi, çarpışma kutuları (`shapeBoxes`), çizimi (`addShapeModel`), konma yönü (`shapeVariant`, `mergeSlab`), simge ve eldeki model (`shapeIcon`, `shapeMesh`) |
    | `day-cycle.js` | `clock`, `daylight()`, `clockText()`, `updateDayCycle()`, güneş ve ay |
    | `sky.js` | Bulutlar (`clouds`, `cloudTexture`) ve yıldızlar (`stars`), `updateSky()` |
    | `player-model.js` | `paint()`, `buildHumanoid()` (oyuncu, zombi, iskelet ortak), oyuncu modeli ve gözden görünümdeki kol |
@@ -108,10 +112,10 @@ tests/              otomatik testler
 
 ## Dünya
 
-- **Boyut:** Yatayda sonsuz, yükseklik `SY = 48`. Dünya `CH = 16`'lık chunk'lardan oluşur; kenar duvarı yoktur.
-- **Veri:** Her dünya bir chunk haritasıdır: `worlds.overworld`, `worlds.nether` = `Map<"cx,cz", Uint8Array(16 × 48 × 16)>`, hücre indeksi `(y * 16 + lz) * 16 + lx` (`cellIndex`). Değer blok kimliğidir, `0` hava. `world` etkin dünyanın haritasıdır.
-- **Erişim:** `get(x, y, z)` yüklenmemiş chunk'ta ve `y ≥ 48`'de hava, `y < 0` için taş döndürür (altta delik görünmesin diye). `set(x, y, z, id)` yüklenmemiş chunk'ı yok sayar; üretim dışındaki her yazım chunk'ı değiştirilmiş sayar (`modifiedChunks[dimension]`) ve `onBlockSet`'i (sıvılar) çağırır. `inBounds` = yüklü chunk ve `0 ≤ y < 48`.
-- **Yükleme** (`chunk-loader.js`, oyun oynanırken her karede): çizim yarıçapı görüş mesafesine bağlıdır (40 / 70 / 120 blok → 3 / 5 / 8 chunk). Oyuncunun chunk'ından halka halka dışa doğru (`nearestChunk`), karede en çok 1 chunk verisi üretilir (yarıçap + 1) ve 2 mesh kurulur; mesh, chunk ve dört komşusunun verisi hazırsa kurulur (kenar yüzleri doğru çizilsin). Yarıçap + 1 dışındaki mesh'ler sahneden kaldırılır; 12 chunk ötedeki değişmemiş veri 2 sn'de bir bellekten silinir (değiştirilmiş chunk'lar kalır).
+- **Boyut:** Yatayda sonsuz, yükseklik `SY = 256` (yapı videoları için; arazi eskisi gibi en çok ~40 blok). Nether yalnızca alttaki `NETHER_H = 48` bloğu kullanır, üstü havadır. Dünya `CH = 16`'lık chunk'lardan oluşur; kenar duvarı yoktur.
+- **Veri:** Her dünya bir chunk haritasıdır: `worlds.overworld`, `worlds.nether` = `Map<"cx,cz", Uint16Array(16 × 256 × 16)>`, hücre indeksi `(y * 16 + lz) * 16 + lx` (`cellIndex`). Değer blok kimliğidir (16 bit, en çok 65.535), `0` hava. `chunkTop(c)` dolu en üst katmanın bir üstünü verir; chunk çizimi ve meşale taraması orada durur. `world` etkin dünyanın haritasıdır.
+- **Erişim:** `get(x, y, z)` yüklenmemiş chunk'ta ve `y ≥ SY`'de hava, `y < 0` için taş döndürür (altta delik görünmesin diye). `set(x, y, z, id)` yüklenmemiş chunk'ı yok sayar; üretim dışındaki her yazım chunk'ı değiştirilmiş sayar (`modifiedChunks[dimension]`) ve `onBlockSet`'i (sıvılar) çağırır. `inBounds` = yüklü chunk ve `0 ≤ y < SY`.
+- **Yükleme** (`chunk-loader.js`, oyun oynanırken her karede): çizim yarıçapı görüş mesafesine bağlıdır (40 / 70 / 120 / 200 blok → 3 / 5 / 8 / 13 chunk). Oyuncunun chunk'ından halka halka dışa doğru (`nearestChunk`), karede en çok 1 chunk verisi üretilir (yarıçap + 1) ve 2 mesh kurulur; mesh, chunk ve dört komşusunun verisi hazırsa kurulur (kenar yüzleri doğru çizilsin). Yarıçap + 1 dışındaki mesh'ler sahneden kaldırılır; `max(12, yarıçap + 2)` chunk ötedeki değişmemiş veri 2 sn'de bir bellekten silinir (değiştirilmiş chunk'lar kalır).
 - Açılışta doğma noktasının 3 chunk çevresi üretilir ve 2 chunk çevresi hemen çizilir; portaldan geçişte, ışınlanmada ve kayıt yüklenince de oyuncunun çevresi hemen hazırlanır (`buildAround`). Ekin ve portal taraması yalnızca değiştirilmiş chunk'lara bakar (`forEachModifiedCell`).
 - **Tohum:** `SEED = 20261106`, sabit. Her açılışta aynı dünya üretilir.
 - **Üretim chunk başınadır** (`generateChunk(cx, cz)`): her şey tohum ve koordinata bağlıdır, aynı chunk her zaman aynı çıkar. Chunk'a özgü rastgele üreteç `chunkRandom(cx, cz, tuz)`. Ağaçlar chunk kenarından 2 blok içeride, damarlar ve obsidyen öbekleri chunk içinde kalır (komşu chunk'a taşmaz).
@@ -193,11 +197,20 @@ Su dışındaki bütün bloklar katı ve opaktır. `isSolid(b)`: hava, `fluid` v
 | Cevher | Kömür cevheri (kömür düşürür), Demir cevheri (kendisi; `minTier: 2`, en az taş kazma) | 7,5 sn | `pickaxe` (`needsTool`) | Hayır |
 | Kumtaşı | Kumtaşı | 4 sn | `pickaxe` (`needsTool`) | Hayır |
 
+#### Yapı blokları ve şekiller (madde 56–57)
+
+- `build-blocks.js` yeni blokları `addBlock(anahtar, tanım)` ile `BLOCKS` dizisinin sonuna ekler (kimlik 84'ten başlar, şu an ~900). Küpler: `BUILD_CUBES` tablosu ve 16 renk (`DYES`) için `<renk>_concrete`, `<renk>_wool`, `<renk>_stained_glass` (yarı saydam, saydam mesh'te). `emitsLight: true` olan bloklar (deniz feneri, lamba) meşale gibi ışık verir (`isLightSource`).
+- **Şekilli bloklar** `model: 'shape'` ve `shape` alanını taşır; geometri `shapes.js`'tedir. Yönlü aileler `SHAPE_MATERIALS` (23 malzeme) × `SHAPE_KINDS`: `stairs` (merdiven), `slab` (yarım blok), `slope` (45° eğim), `arch` (kemer parçası: altı, bakış yönündeki alt köşeyi merkez alan çeyrek daireyle oyulmuş), `corner` (yuvarlak köşe: çeyrek silindir), `pillar` (yuvarlak sütun). Eşya anahtarı `<malzeme>_<şekil>` (ör. `stone_brick_stairs`) ailenin ilk türevidir; diğer türevler gizlidir (`<aile>_<yön><ters>`), kırılınca aile eşyası düşer. Her türev `dir` (`BED_DIRS` yönü), `flip` (üst yarı), `family`, `full` (tam blok kimliği) taşır.
+- Bağlanan şekiller (tek kimlik): `fence` (çit), `pane` (demir/bronz parmaklık, cam panel), `wall` (duvar). Aynı türden komşulara ve tam opak küplere kol uzatır; komşu değişince chunk yeniden kurulduğu için kendiliğinden güncellenir.
+- **Konma:** Yön oyuncunun bakış yönüdür (merdivenin yüksek tarafı, eğimin yükselen tarafı ve kemerin açıklığı o yöndedir). Bir bloğun alt yüzüne ya da yan yüzünün üst yarısına tıklanınca ters türev konur. Yarım bloğun üst yüzüne (ters yarım blokta alt yüzüne) aynı yarım blok konunca hücre tam bloğa döner (`mergeSlab`).
+- **Çizim:** `addShapeModel` şeklin çokgenlerini opak mesh'e yazar; doku hücre koordinatından, yüzün normaline göre izdüşümle okunur (üst/alt/yan dokusu normalden). Hücre sınırındaki bir yüz, komşusu tam opak küpse ya da aynı kimlikteki komşuyla uzama ekseninde örtüşüyorsa çizilmez. Şekiller `transparent` sayılır, böylece yanlarındaki küplerin yüzleri çizilir.
+- **Simge:** Şekilli blokların simgesi şeklin modeli izometrik açıdan küçük bir hedefe çizilerek üretilir (`shapeIcon`); elde ve yerde de aynı model (`shapeMesh`) görünür.
+
 ### Dokular
 
-- Tek satırlık atlas: `T = 16` piksel kare, `N_TILES = 37` doku, atlas `592 × 16` piksel.
+- Tek satırlık atlas: `T = 16` piksel kare, `N_TILES = 192` doku yeri, atlas `3072 × 16` piksel. İlk 52 doku `textures.js`'te, sonrakiler `build-textures.js`'te `paintTile(ad, fn)` ile sıradaki yere çizilir (şu an ~150 dolu).
 - `TILE` sırası: `grassTop, grassSide, dirt, stone, logSide, logTop, leaves, sand, planks, brick, cobble, craftingTop, craftingSide, furnaceFront, furnaceTop, sandstoneTop, sandstoneSide, furnaceLit, glass, coalOre, ironOre, water, torch, bedHeadTop, bedFootTop, bedSide, doorLower, doorUpper, tallGrass, poppy, dandelion, farmland, wheat0, wheat1, wheat2, wheat3, obsidian, netherrack, lava, glowstone, chestTop, chestSide, diamondOre, snowGrassTop, snowGrassSide, ice, cactusSide, cactusTop, spruceLog, spruceLeaves, netherBrick, spawner`.
-- Yeni doku eklerken `N_TILES` artırılır, `TILE`'a eklenir, çizim kodu aynı bölüme yazılır.
+- Yeni doku `build-textures.js`'te `paintTile` ile eklenir; 192 dolarsa `N_TILES` artırılır.
 - Dokular `mulberry32(1337)` ile her açılışta aynı üretilir. Filtre `NearestFilter`, mipmap yok.
 
 ---
@@ -214,13 +227,21 @@ Su dışındaki bütün bloklar katı ve opaktır. `isSolid(b)`: hava, `fluid` v
 - **Yatak modeli:** `addBedModel` yarım blok yüksekliğinde bir kutu çizer; iki yarı arasındaki yüz ve alt yüz çizilmez. Üst dokuların "yukarısı" her iki yarıda da baş tarafına döner (yastık baş hücresinin uzak kenarında).
 - **Meşale modeli:** Tam blok değil; 2×10 piksellik çubuk (`addTorchModel`), dokunun ortadaki iki sütunu (alt kısım tahta, üst 3 satır alev). Yerdeki meşale dik durur; duvar meşalesi duvara yakın başlar ve dışa eğilir. Meşalenin kendi yüzleri her zaman tam aydınlıktır.
 - **Yeniden kurma:** Blok değişince `rebuildAround(x, z)` o chunk'ı ve gerekiyorsa komşusunu yeniden kurar.
-- **Gökyüzü:** Rengi gün döngüsüne göre değişir (aşağıda); sis aynı renktedir (30–70 blok).
+- **Gökyüzü:** Rengi gün döngüsüne göre değişir (aşağıda); sis aynı renktedir; uzak sınırı görüş mesafesi, yakın sınırı bunun 0,43 katı (sis kapalıyken 0,85 katı). Kameranın uzak düzlemi `max(300, görüş × 1,5)`.
 - **İki geçişli çizim:** `renderer.autoClear = false`. Önce dünya sahnesi, sonra gözden görünümde derinlik temizlenip kol sahnesi (`fpScene`, `fpCam`) çizilir; böylece kol duvarın içine girmez.
 - **Işıklar:** Dünya ışıksızdır. Oyuncu modeli ve kol için `HemisphereLight` (`HEMI_INTENSITY = 0.8`) + `DirectionalLight` (`SUN_INTENSITY = 0.5`), `addLights()` ile iki sahneye de eklenir ve `lightRigs` dizisinde tutulur.
 
+### Shader modu
+
+- Kontrol panelindeki "Shader modu" anahtarı (`setShaderMode`, `settings.shader`'a yazılır). Açılıp kapanınca bütün chunk'lar yeniden kurulur.
+- **Malzeme:** Opak chunk mesh'i `MeshBasicMaterial` yerine `shadedMaterial` (`MeshLambertMaterial`) ile çizilir; köşe normalleri hesaplanır, renk gök (`HemisphereLight`) ve güneş (`DirectionalLight`) ışığından gelir. Meşale ışığı sıcak bir öz ışık olarak eklenir. Yüz gölgesi yerine köşe ortam gölgesi (`cornerAO`: yüzün önündeki iki yan ve bir köşe hücresi doluysa köşe 0,45–1 arasında kararır). Şekilli bloklar da düz renkle (`flat`) yazılır.
+- **Gölge:** `lightRigs[0].sun` gölge düşürür (`PCFSoftShadowMap`, 2048 piksel, oyuncu çevresinde ±90 blok). Işık yönü güneşten (gece aydan, zayıf) gelir; yoğunluk ve renk her karede gün ışığına göre ayarlanır (`updateShaderMode`).
+- **Gök:** Kameraya bağlı kubbe: ufuk rengi gökyüzü/sis rengiyle aynı, tepe gündüz koyu mavi, güneş çevresi parlar. **Su:** üst yüz dalgalanır, parıltı kıpırdar, daha koyu ve %78 opak.
+- **Ton:** `ACESFilmicToneMapping` (pozlama 0,95), tuvale hafif doygunluk/kontrast (`canvas.shaded`) ve kenar kararması (`#vignette`).
+
 ### Bulutlar ve yıldızlar
 
-- **Bulutlar:** `CLOUD_HEIGHT = 60`'ta, oyuncuyla birlikte hareket eden 384×384 blokluk düz bir katman. Doku 64×64 pikseldir, her piksel 4×4 bloğa denk gelir; döşenebilir gürültüyle şekillenir ve dünyaya sabit kalacak şekilde kaydırılır, böylece katman dünyanın dışına da uzanır. Oyun oynanırken `CLOUD_SPEED = 0.6` blok/sn doğuya (+x) kayar. Sisten etkilenmez, %85 opaktır; rengi gece `0,3 + 0,7 × daylight` oranında grileşir.
+- **Bulutlar:** `CLOUD_HEIGHT = 192`'de (yüksek yapıları kesmesin), oyuncuyla birlikte hareket eden 768×768 blokluk düz bir katman. Doku 64×64 pikseldir, her piksel 4×4 bloğa denk gelir; döşenebilir gürültüyle şekillenir ve dünyaya sabit kalacak şekilde kaydırılır, böylece katman dünyanın dışına da uzanır. Oyun oynanırken `CLOUD_SPEED = 0.6` blok/sn doğuya (+x) kayar. Sisten etkilenmez, %85 opaktır; rengi gece `0,3 + 0,7 × daylight` oranında grileşir. `settings.clouds` kapalıyken gizlenir (kontrol panelindeki "Bulutlar").
 - **Yıldızlar:** 400 nokta (`THREE.Points`), kameraya bağlı 150 yarıçaplı kürenin üst yarısında; gün döngüsüyle döner, opaklığı `1 − daylight` (gündüz görünmez).
 
 ### Gün döngüsü
@@ -256,7 +277,8 @@ Su dışındaki bütün bloklar katı ve opaktır. `isSolid(b)`: hava, `fluid` v
 | Yürüme | 4,3 | blok/sn |
 | Koşma | 6,2 | blok/sn |
 
-- **Blok kutuları:** Her katı bloğun hücre içinde bir çarpışma kutusu vardır (`blockBox`): `box` (kapı levhası), `height` (yatak 9/16) ya da tam hücre. `overlappingBoxes` varlığın kesiştiği kutuları bulur; `moveAxis` çarpışınca varlığı kutunun yüzüne dayar (yere iner, tavana değer, duvara yaslanır).
+- **Blok kutuları:** Her katı bloğun hücre içinde bir ya da daha çok çarpışma kutusu vardır (`blockBoxes(b, x, y, z)`): şekilli bloklarda `shapeBoxes` (eğim ve kemer 4 basamakla yaklaşık), `box` (kapı levhası), `height` (yatak 9/16) ya da tam hücre.
+- **Basamak:** Yerdeki varlık yatayda en çok `STEP_HEIGHT = 0,6` yüksekliğinde bir kutuya çarparsa ve üstü boşsa onun üstüne çıkar (yarım blok, merdiven, eğim, yatak). `overlappingBoxes` varlığın kesiştiği kutuları bulur; `moveAxis` çarpışınca varlığı kutunun yüzüne dayar (yere iner, tavana değer, duvara yaslanır).
 - Çarpışma eksen eksen yapılır (`moveAxis(e, axis, d)`): önce x, sonra z, sonra y. `stepEntity(e, dt)` adım 0,4 bloktan büyükse alt adımlara böler ve yatayda çarpıp çarpmadığını döndürür. Aynı kod canlılar için de kullanılır; her varlık `{ x, y, z, w, h, vx, vy, vz, onGround }` taşır (`w` yarı genişlik). Kare süresi 0 ile 0,05 sn arasına sıkıştırılır.
 - **Su:** Oyuncunun kutusu suya (kaynak ya da akan, `isWater`) değiyorsa yürüme hızı %50, yerçekimi 1/4, batma hızı en çok `SINK_SPEED = 3`; Boşluk basılıyken `SWIM_UP_SPEED = 3` ile yukarı yüzer. Suya düşen düşme hasarı almaz. Kamera suyun içindeyse ekran mavi tonlanır (`#underwater`) ve sis 0–8 bloğa iner. Hayvanlar suya girmez; düşmanlar suya doğmaz.
 - **Geri itilme:** `player.kx`, `player.kz` hıza eklenir ve her karede `e^(-6·dt)` ile söner.
@@ -602,7 +624,10 @@ Su dışındaki bütün bloklar katı ve opaktır. `isSolid(b)`: hava, `fluid` v
   | --- | --- | --- | --- |
   | `sensitivity` | kaydırıcı 0,001–0,006 (yüzde olarak gösterilir) | 0,0025 (%100) | Fare hareketinin bakışa çarpanı |
   | `fov` | kaydırıcı 60–100 | 75 | Kamera görüş alanı; koşarken +10 |
-  | `viewDistance` | `short` / `normal` / `far` | `normal` | Sisin uzak sınırı 40 / 70 / 120 blok, yakın sınırı bunun 0,43 katı |
+  | `viewDistance` | `short` / `normal` / `far` / `ultra` | `normal` | Sisin uzak sınırı 40 / 70 / 120 / 200 blok, yakın sınırı bunun 0,43 katı |
+  | `fog` | kontrol paneli "Sis" | açık | Kapalıyken sis görüş mesafesinin 0,85 katında başlar (uzaklar net) |
+  | `clouds` | kontrol paneli "Bulutlar" | açık | Bulut katmanı |
+  | `shader` | kontrol paneli "Shader modu" | kapalı | Gerçekçi çizim (aşağıda "Shader modu") |
   | `sound` | onay kutusu | açık | Ses açık/kapalı |
   | `invertY` | onay kutusu | kapalı | Fareyi yukarı itince aşağı bakılır |
   | `guide` | onay kutusu | açık | Rehber kartı (H ve kontrol panelindeki anahtarla aynı ayar) |
@@ -659,8 +684,8 @@ Su dışındaki bütün bloklar katı ve opaktır. `isSolid(b)`: hava, `fluid` v
 
   | Bölüm | Denetimler | Eylem (`game-actions.js`) |
   | --- | --- | --- |
-  | Oyun modu | Güvenli mod, Ölümsüzlük, Uçma, Rehber, Ses anahtarları (2×2; açıkken yeşil, "AÇIK") | `setSafeMode`, `setGodMode`, `setFlyAllowed`, `settings.sound` + `applySettings`/`saveSettings` |
-  | Görünüm | Kamera: Arkadan, Gözden, Önden (V ile aynı); Görüş mesafesi: Kısa, Normal, Uzak (ayarlardakiyle aynı). Seçili olan yeşil | `view`, `settings.viewDistance` + `applySettings`/`saveSettings` |
+  | Oyun modu | Güvenli mod, Ölümsüzlük, Uçma, Rehber, Ses, Shader modu, Sis, Bulutlar anahtarları (açıkken yeşil, "AÇIK") | `setSafeMode`, `setGodMode`, `setFlyAllowed`, `settings.sound` + `applySettings`/`saveSettings`, `setShaderMode`, `setFog`, `setClouds` |
+  | Görünüm | Kamera: Arkadan, Gözden, Önden (V ile aynı); Görüş mesafesi: Kısa, Normal, Uzak, Çok uzak (ayarlardakiyle aynı). Seçili olan yeşil | `view`, `settings.viewDistance` + `applySettings`/`saveSettings` |
   | Saat | Sabah, Öğle, Akşam, Gece yarısı (`TIMES_OF_DAY`); başlıkta o anki saat | `setTimeOfDay` |
   | Oyuncu | Canı doldur, Karnı doyur, Doğma noktası burası, Envanteri boşalt (ikinci basışta) | `healPlayer`, `feedPlayer`, `setSpawnHere`, `clearInventory` |
   | Eşyalar | Eşya seç ve al: paneli kapatıp eşya seçiciyi açar | `openPicker` |
@@ -685,17 +710,17 @@ Su dışındaki bütün bloklar katı ve opaktır. `isSolid(b)`: hava, `fluid` v
 
 ## Test kancası
 
-Konsoldan ve testlerden erişim için `window.game` açıktır. Nesne ilk betikte (`textures.js`) boş olarak oluşturulur, her betik kendi kancalarını `Object.assign(window.game, …)` ile ekler. Kancalar: `player`, `damagePlayer`, `clock`, `getBlock`, `setBlock`, `saveGame`, `biomeAt`, `temp`/`hum` (sıcaklık, nem), `mobs`, `projectiles`, `particles`, `spawnMob`, `drops`, `dropItem`, `inventory`, `addItem`, `openInventory`, `closeInventory`, `clickSlot`, `clickCraft`, `clickResult`, `craftGrid`, `mining`, `hunger`, `renderFood`, `getSpawnPoint()`, `isSleeping()`, `crops`, `trySpawnHostile(night)`, `settings`, `fogFar()`, `showSettings`, `soundLog`, `setSound`, `isSoundOn()`, `audioReady()`, `debris`, `spawnDebris`, `clouds`, `stars`, `cloudDrift()`, `tryLightPortal`, `rebuildPortalMeshes`, `portalTimer()`, `worlds` (chunk haritaları), `ensureArea(x, z, r, dim)`, `villagePlan(rx, rz)`, `villageNear(x, z)`, `trades`, `openTrade(m)`, `trade(k)`, `tryOpenTrade()`, `villagerTarget(m)`, `fortressPlan(rx, rz)`, `fortressNear(x, z)`, `shootSmallFireball(m)`, `spawnerModels()`, `guideSteps`, `guideFlags`, `guideStep()`, `setGuideStep(n)`, `setGuideShown(on)`, `setBookOpen(on)`, `selectRecipe(key)`, `fillRecipe()`, `bookItems()`, `setBookTab(tab)`, `chunkCount()`, `meshCount()`, `modifiedChunks`, `switchDimension`, `trySpawnNether(kind)`, `reflectFireball`, `shootFireball`, `portalLinks`, `getDimension()`, `createPortalNear`, `useBed`, `recipes`, `openChat`, `closeChat`, `submitChat`, `openPicker`, `clickPicker(key, right)`, `openControl`, `closeControl`, `isControlOpen()`, `isFlying()`, `isFlyAllowed()`, `pickerItems()`, `isGod()`, `isSafe()`, `chatLines()`, `itemIcon`, `items` (`ITEMS`), `heldView()` (`{ cube, icon }`), `furnaces`, `openFurnace`, `clickFurnace`, `armor`, `clickArmor(i, right)`, `armorPoints()`, `armorMeshes`, `renderArmor`, `bowCharge()`, `shootPlayerArrow(charge)`, `fluidQueues`, `updateFluids`, `fluidPending()`, `chests`, `openChest`, `clickChest(i, right)`, `rebuild` (`buildChunk`), `camera`, `cameraDistance()`, `raycast`, `torchNearby`, `torchLight(x, y, z)` (kazma ilerlemesi), `crackVisible()` ve kayıt okunduktan sonra `true` olan `ready`. Yeni sistemler test gerektiriyorsa buraya eklenir.
+Konsoldan ve testlerden erişim için `window.game` açıktır. Nesne ilk betikte (`textures.js`) boş olarak oluşturulur, her betik kendi kancalarını `Object.assign(window.game, …)` ile ekler. Kancalar: `player`, `damagePlayer`, `clock`, `getBlock`, `setBlock`, `saveGame`, `biomeAt`, `temp`/`hum` (sıcaklık, nem), `mobs`, `projectiles`, `particles`, `spawnMob`, `drops`, `dropItem`, `inventory`, `addItem`, `openInventory`, `closeInventory`, `clickSlot`, `clickCraft`, `clickResult`, `craftGrid`, `mining`, `hunger`, `renderFood`, `getSpawnPoint()`, `isSleeping()`, `crops`, `trySpawnHostile(night)`, `settings`, `fogFar()`, `showSettings`, `soundLog`, `setSound`, `isSoundOn()`, `audioReady()`, `debris`, `spawnDebris`, `clouds`, `stars`, `cloudDrift()`, `tryLightPortal`, `rebuildPortalMeshes`, `portalTimer()`, `worlds` (chunk haritaları), `ensureArea(x, z, r, dim)`, `villagePlan(rx, rz)`, `villageNear(x, z)`, `trades`, `openTrade(m)`, `trade(k)`, `tryOpenTrade()`, `villagerTarget(m)`, `fortressPlan(rx, rz)`, `fortressNear(x, z)`, `shootSmallFireball(m)`, `spawnerModels()`, `guideSteps`, `guideFlags`, `guideStep()`, `setGuideStep(n)`, `setGuideShown(on)`, `setBookOpen(on)`, `selectRecipe(key)`, `fillRecipe()`, `bookItems()`, `setBookTab(tab)`, `chunkCount()`, `meshCount()`, `modifiedChunks`, `switchDimension`, `trySpawnNether(kind)`, `reflectFireball`, `shootFireball`, `portalLinks`, `getDimension()`, `createPortalNear`, `useBed`, `recipes`, `openChat`, `closeChat`, `submitChat`, `openPicker`, `clickPicker(key, right)`, `openControl`, `closeControl`, `isControlOpen()`, `isFlying()`, `isFlyAllowed()`, `pickerItems()`, `isGod()`, `isSafe()`, `chatLines()`, `itemIcon`, `items` (`ITEMS`), `heldView()` (`{ cube, icon }`), `furnaces`, `openFurnace`, `clickFurnace`, `armor`, `clickArmor(i, right)`, `armorPoints()`, `armorMeshes`, `renderArmor`, `bowCharge()`, `shootPlayerArrow(charge)`, `fluidQueues`, `updateFluids`, `fluidPending()`, `chests`, `openChest`, `clickChest(i, right)`, `rebuild` (`buildChunk`), `camera`, `cameraDistance()`, `raycast`, `torchNearby`, `torchLight(x, y, z)`, `shapeFamilies`, `shapeGeometry(id, x, y, z)`, `shapeIcon(id)`, `setShaderMode(on)`, `isShaderMode()`, `cameraRig` (video aracı yazar: `{ pos, look }` verilirse kamera oyuncudan bağımsız sürülür, oyuncu modeli, kol ve seçim çerçevesi gizlenir), `videoTime` (video aracı yazar: shader modundaki su bu zamanla dalgalanır) (kazma ilerlemesi), `crackVisible()` ve kayıt okunduktan sonra `true` olan `ready`. Yeni sistemler test gerektiriyorsa buraya eklenir.
 
 ## Kayıt
 
 - Tarayıcının IndexedDB'si: veritabanı `block-world`, depo `saves`, tek kayıt anahtarı `world1`. Veri yalnızca o tarayıcıda ve o adreste durur (GitHub Pages adresi ile yerel dosyanın kayıtları ayrıdır).
-- **Kayıt nesnesi** (`SAVE_VERSION = 3`; sürüm 1–2 kayıtlarındaki 96×96 tek dizi açılışta chunk'lara bölünür ve hepsi değiştirilmiş sayılır, `loadLegacyWorld`):
+- **Kayıt nesnesi** (`SAVE_VERSION = 4`; sürüm 3 kayıtlarının 48 blokluk 8 bit chunk'ları 256 blokluk 16 bit diziye kopyalanır (`upgradeChunk`, hücre indeksi aynı kaldığından dizinin başına); sürüm 1–2 kayıtlarındaki 96×96 tek dizi açılışta chunk'lara bölünür ve hepsi değiştirilmiş sayılır, `loadLegacyWorld`):
 
   | Alan | İçerik |
   | --- | --- |
   | `version` | `2` |
-  | `chunks` | Yalnızca değiştirilmiş chunk'lar: `{ overworld: { "cx,cz": Uint8Array(12.288) }, nether: { … } }`. Değişmemiş chunk'lar tohumdan yeniden üretilir |
+  | `chunks` | Yalnızca değiştirilmiş chunk'lar: `{ overworld: { "cx,cz": Uint16Array(65.536) }, nether: { … } }`. Değişmemiş chunk'lar tohumdan yeniden üretilir |
   | `dimension` | Oyuncunun bulunduğu dünya: `'overworld'` ya da `'nether'` |
   | `portalLinks` | `{ overworld, nether }`: her dünyadaki bağlı portal `{ x, y, z, axis }` ya da `null` |
   | `player` | `{ x, y, z, yaw, pitch }` |
@@ -780,3 +805,23 @@ Numaralar [minecraft-feature-list.md](minecraft-feature-list.md) ile aynıdır.
 | 51 | Kontrol paneli | Yapıldı |
 | 52 | Eğilme | Yapıldı |
 | 53 | Uçma | Yapıldı |
+| 54 | 256 blok dünya yüksekliği | Yapıldı |
+| 55 | Uzak görüş, sis ve bulut ayarları | Yapıldı |
+| 56 | Yapı blokları | Yapıldı |
+| 57 | Şekilli bloklar | Yapıldı |
+| 58 | Shader modu | Yapıldı |
+| 59 | Video aracı | Yapıldı |
+| 60 | Burj Halife şablonu | Yapıldı |
+
+## Video aracı (tools/video)
+
+Oyunu görünmez Chrome'da açıp bir yapıyı kare kare kurarken kaydeden ve dikey mp4 üreten araç. Oyunun parçası değildir, yayında yüklenmez.
+
+- **Kullanım:** `node tools/video/record.mjs tools/video/scenes/burj-khalifa.mjs [--gpu] [--size 720x1280] [--fps 30] [--seconds 24] [--still 0.6] [--out videos]`. Birden çok sahne verilirse sırayla kaydedilir (kuyruk). Çıktı `videos/<sahne>.mp4` (`.gitignore`'da). `--still t` video yerine o andaki tek kareyi PNG yazar (hızlı önizleme). `--gpu` ekran kartıyla çizer (SwiftShader'dan ~5 kat hızlı); 720×1280 24 sn ekran kartıyla birkaç dakika sürer. ffmpeg gerekir.
+- **Akış:** Oyun açılır, "Oyna"ya basılır, arayüz gizlenir; ölümsüzlük ve güvenli mod açılır; sahnenin ayarları (görüş, sis, bulut, shader, görüş açısı) uygulanır; yapı alanının çevresi üretilir, canlılar kaldırılır, oyun dondurulur (`playing = false`: canlı, sıvı, bulut ilerlemez) ve bütün çevre çizilir. Her karede sıradaki bloklar konur (`__video.place`), değişen chunk'lar yeniden kurulur, saat ve su zamanı (`window.game.videoTime`) karenin zamanına sabitlenir, kamera `window.game.cameraRig` ile ayarlanır, iki kare beklenir ve ekran görüntüsü ffmpeg'e (libx264, yuv420p, crf 18) aktarılır. Böylece kareler gerçek çizim süresinden bağımsız, düzgün akar.
+- **Zaman çizelgesi:** `prepare(ctx)` blokları (zemin düzleme, meydan) da videoda görünür: dünyadakinden farklı olan hücreler alınır (`__video.changes`) ve merkezden dışa 2 bloklık halkalarla sıralanır (halkada önce boşaltma yukarıdan aşağı, sonra doldurma). Kurulum karelerinin `prepareShare` (varsayılan 0,2) kadarı hazırlığa, kalanı `blocks` listesine ayrılır; en sondaki `hold` oranı kurulumsuz döner. Kamera kurulan en üst katı ~0,6 sn'lik üstel yumuşatmayla izler (`topY`), her yeni katta zıplamaz.
+- **Giriş** (isteğe bağlı `intro: { seconds, segments, camera(t, ctx) }`): videonun başında bitmiş yapı gösterilir. Kayıt aracı yapı alanını kapsayan chunk'ların kopyasını alır (`__video.snapshot`), bütün blokları koyar, girişi çeker, sonra kopyayı geri yazar (`__video.restore`) ve kurulum baştan başlar. Her bölüm `{ until (0–1), shader, caption }`: shader modu bölümle değişir (bütün çevre yeniden kurulur), `caption` karenin üstünde piksel yazıyla görünür (`__video.caption`). Burj'da 6 sn: "Shader kapalı" → "Shader açık" → "Nasıl yapıldı?". `--intro-still t` girişin bir karesini PNG yazar.
+- **Sahne dosyası** (`tools/video/scenes/*.mjs`, `export default`): `name`, `size`, `fps`, `seconds`, `hold` (sonda kurulumsuz dönen süre oranı), `prepareShare`, `time` (`clock.time`), `shader`, `fog`, `clouds`, `view`, `fov`, `center: [x, z]`, `prepare(ctx)` ve `blocks(ctx)` (blok listesi `[x, y, z, anahtar]`, kurulum sırasıyla; anahtar `B`'deki ad, `0` hava), `camera(t, ctx)` → `{ pos: [x, y, z], look: [x, y, z] }`. `ctx`: `ground` (merkezdeki arazi yüksekliği), `center`, kamerada ayrıca `progress` (yapının 0–1 ilerlemesi; hazırlıkta 0), `topY` (kurulan en yüksek bloğun yumuşatılmış değeri) ve `preparing`.
+- **Yapı şablonu yardımcıları** (`tools/video/templates.mjs`): `shell({ inside, bounds, material })` içi boş kabuk (yalnızca görünen yan ve çatı hücreleri, katman katman, açıya göre sıralı), `disc`, `flatten(cx, cz, r, zemin, clear = 40)` (alanı zeminin 40 blok üstüne kadar boşaltıp altını doldurur), `orbit` (dönen kamera).
+- **Örnek sahne:** `burj-khalifa.mjs`: Y planlı, üç kanadı sarmal sırayla 18 kademede kısalan, daralan çekirdekli ve demir sütunlu sivri tepeli gökdelen (~220 blok, ~16.000 blok); füme cam ve demir dikme cephe, kuvars kademe çatıları, cilalı taş meydan ve halka havuz. 6 sn giriş + 28 sn: ilk %20'si düzleme ve meydan, sonra kule, son %20'si dönerek gösterim. Shader modu açık, sis ve bulut kapalı.
+- **Test:** `node tools/video/selftest.mjs`: her sahnenin blokları dünya sınırında ve aşağıdan yukarı sıralı mı, kamera geçerli mi; örnek sahnenin girişli, 1 sn kurulumlu 180×320 kaydı beklenen kare sayısında (10 fps: giriş + 10) ve oynatılabilir mi (ffprobe).

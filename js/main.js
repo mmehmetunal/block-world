@@ -194,19 +194,31 @@ function frame(now) {
   highlight.visible = !!hit && !(mobHit && mobHit.t < hit.t);
   if (hit) highlight.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
 
+  // Video aracı (tools/video): kamera dışarıdan sürülür { pos, look }; oyuncu modeli, kol ve seçim çerçevesi gizlenir (gök ve güneş yeni kameraya göre konsun diye gün döngüsünden önce)
+  const rig = window.game.cameraRig;
+  if (rig) {
+    camera.position.set(...rig.pos);
+    camera.lookAt(...rig.look);
+    model.visible = highlight.visible = false;
+  }
   updateDayCycle(dt);
   updateSky(dt);
+  updateShaderMode(dt);
   // Kamera suyun içindeyse ekran mavi tonlanır, sis 8 bloğa iner.
   const cameraInWater = isWater(get(Math.floor(camera.position.x), Math.floor(camera.position.y), Math.floor(camera.position.z)));
   underwaterEl.hidden = !cameraInWater;
   const viewDistance = VIEW_DISTANCES[settings.viewDistance];
-  scene.fog.near = cameraInWater ? 0 : dimension === 'nether' ? NETHER_FOG_NEAR : viewDistance * 0.43;
+  // Sis kapalıyken yalnızca görüş sınırındaki chunk kenarlarını gizler
+  scene.fog.near = cameraInWater ? 0 : dimension === 'nether' ? NETHER_FOG_NEAR : viewDistance * (settings.fog ? 0.43 : 0.85);
+  // Kamera uzak düzlemi görüş mesafesi ve bulutlar (y = 192) çizilecek kadar geride
+  const far = Math.max(300, viewDistance * 1.5);
+  if (camera.far !== far) { camera.far = far; camera.updateProjectionMatrix(); }
   scene.fog.far = cameraInWater ? 8 : dimension === 'nether' ? NETHER_FOG_FAR : viewDistance;
   if (cameraInWater) scene.fog.color.setRGB(0.1, 0.25, 0.5).multiplyScalar(brightnessUniform.value);
   info.textContent = `${clockText()} · X ${Math.floor(p.x)} · Y ${Math.floor(p.y)} · Z ${Math.floor(p.z)}`;
   renderer.clear();
   renderer.render(scene, camera);
-  if (view === 1) { renderer.clearDepth(); renderer.render(fpScene, fpCam); }
+  if (view === 1 && !rig) { renderer.clearDepth(); renderer.render(fpScene, fpCam); }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

@@ -20,6 +20,17 @@ function setFlyAllowed(on) {
   if (!on) flying = false;
   return on ? 'Uçma açık: iki kez boşluğa bas' : 'Uçma kapalı';
 }
+// Sis ve bulutlar ayarlara yazılır (kayıttan bağımsız)
+function setFog(on) {
+  settings.fog = on;
+  saveSettings();
+  return on ? 'Sis açık' : 'Sis kapalı: uzaklar net';
+}
+function setClouds(on) {
+  settings.clouds = on;
+  saveSettings();
+  return on ? 'Bulutlar açık' : 'Bulutlar kapalı';
+}
 function healPlayer() {
   player.health = MAX_HEALTH;
   renderHearts();

@@ -10,6 +10,9 @@ const TOGGLES = {
   fly: { on: () => flyAllowed, set: setFlyAllowed },
   guide: { on: () => settings.guide, set: on => setGuideShown(on) },
   sound: { on: () => settings.sound, set: on => { settings.sound = on; applySettings(); saveSettings(); return on ? 'Ses açık' : 'Ses kapalı'; } },
+  shader: { on: () => shaderMode, set: setShaderMode },
+  fog: { on: () => settings.fog, set: setFog },
+  clouds: { on: () => settings.clouds, set: setClouds },
 };
 const tpInputs = ['x', 'y', 'z'].map(a => document.getElementById('tp-' + a));
 let confirmClear = false;

@@ -146,7 +146,8 @@ function blockIcon(def) {
 }
 const iconCache = {};
 function itemIcon(key) {
-  if (!iconCache[key]) iconCache[key] = ITEMS[key].block ? blockIcon(BLOCKS[ITEMS[key].block]) : ITEMS[key].canvas.toDataURL();
+  const id = ITEMS[key].block;
+  if (!iconCache[key]) iconCache[key] = id ? (BLOCKS[id].model === 'shape' ? shapeIcon(id) : blockIcon(BLOCKS[id])) : ITEMS[key].canvas.toDataURL();
   return iconCache[key];
 }
 
@@ -211,6 +212,12 @@ function itemGeometry(key) {
 const DROP_ITEM_SIZE = 0.5;
 function dropMesh(key) {
   const item = ITEMS[key];
+  // Şekilli blok: kendi modeli çeyrek boyda
+  if (item.block && BLOCKS[item.block].model === 'shape') {
+    const mesh = new THREE.Mesh(shapeMesh(item.block), shapeIconMaterial);
+    mesh.scale.setScalar(0.25);
+    return mesh;
+  }
   if (item.block) {
     const geo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
     const def = BLOCKS[item.block], uv = geo.attributes.uv;

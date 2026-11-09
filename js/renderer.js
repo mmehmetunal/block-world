@@ -81,7 +81,7 @@ function torchesNear(x0, z0, x1, z1) {
     const c = world.get(chunkKey(cx, cz));
     if (!c) continue;
     const zs = Math.max(z0, cz * CH), ze = Math.min(z1, cz * CH + CH - 1), xs = Math.max(x0, cx * CH), xe = Math.min(x1, cx * CH + CH - 1);
-    for (let y = 0; y < SY; y++) for (let z = zs; z <= ze; z++) for (let x = xs; x <= xe; x++) {
+    for (let y = 0, top = chunkTop(c); y < top; y++) for (let z = zs; z <= ze; z++) for (let x = xs; x <= xe; x++) {
       if (isLightSource(c[(y * CH + z - cz * CH) * CH + x - cx * CH])) list.push([x + 0.5, y + 0.6, z + 0.5]);
     }
   }
@@ -178,6 +178,8 @@ function addTorchModel(buf, x, y, z, def) {
     buf.idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
   });
 }
+// Shader modu (shader-mode.js) açıkken chunk'lar ışıklı malzemeyle, AO'lu ve gölgeli kurulur.
+let shaderMode = false;
 const chunkMeshes = new Map();
 // Yüz, komşu hava ise ya da komşu kendisinden farklı saydam bir bloksa çizilir.
 const faceVisible = (b, n) => n === AIR || (n !== b && BLOCKS[n].transparent);
@@ -187,13 +189,15 @@ function liquidTop(x, y, z) {
   return liquidOf(get(x, y + 1, z)) === def.liquid ? 1 : 1 - def.level / 8;
 }
 function buildChunk(cx, cz) {
-  const buffers = [0, 1, 2].map(() => ({ pos: [], uv: [], col: [], light: [], idx: [] })); // 0 opak, 1 saydam, 2 kendi ışıklı
+  // 0 opak, 1 saydam, 2 kendi ışıklı. flat: yüz gölgesi yok (shader modunda ışıklar verir)
+  const buffers = [0, 1, 2].map(() => ({ pos: [], uv: [], col: [], light: [], idx: [], flat: shaderMode }));
   const range = Math.ceil(TORCH_RANGE);
   const torches = torchesNear(cx * CH - range, cz * CH - range, cx * CH + CH - 1 + range, cz * CH + CH - 1 + range);
   // Biyom tonu sütun başına bir kez hesaplanır
   const tints = new Map();
   const tintAt = (x, z) => tints.get(x * 4096 + z) || tints.set(x * 4096 + z, BIOME_TINT[biomeAt(x, z)]).get(x * 4096 + z);
-  for (let y = 0; y < SY; y++) for (let z = cz * CH; z < cz * CH + CH; z++) for (let x = cx * CH; x < cx * CH + CH; x++) {
+  const data = world.get(chunkKey(cx, cz)), topY = data ? chunkTop(data) : 0;
+  for (let y = 0; y < topY; y++) for (let z = cz * CH; z < cz * CH + CH; z++) for (let x = cx * CH; x < cx * CH + CH; x++) {
     const b = get(x, y, z);
     if (b === AIR) continue;
     const def = BLOCKS[b];
@@ -201,6 +205,7 @@ function buildChunk(cx, cz) {
     if (def.model === 'bed') { addBedModel(buffers[0], x, y, z, def, torches); continue; }
     if (def.model === 'box') { addBoxModel(buffers[0], x, y, z, def, torches); continue; }
     if (def.model === 'cross') { addCrossModel(buffers[0], x, y, z, def, torches); continue; }
+    if (def.model === 'shape') { addShapeModel(buffers[0], b, x, y, z, def, torches); continue; }
     if (def.model === 'portal') continue; // portal.js ayrı çizer
     const buf = buffers[def.selfLit ? 2 : def.transparent && !def.cutout ? 1 : 0];
     const { pos, uv, col, light, idx } = buf;
@@ -221,8 +226,10 @@ function buildChunk(cx, cz) {
       for (const [p, t] of f.corners) {
         pos.push(x + p[0], y + p[1] * top, z + p[2]);
         uv.push(u0 + (u1 - u0) * t[0], t[1] ? 1 - EPS : EPS);
-        if (tint) col.push(f.light * tint[0], f.light * tint[1], f.light * tint[2]);
-        else col.push(f.light, f.light, f.light);
+        // Shader modunda yüz gölgesi yerine köşe ortam gölgesi
+        const shadeLight = shaderMode ? cornerAO(x, y, z, f.dir, p) : f.light;
+        if (tint) col.push(shadeLight * tint[0], shadeLight * tint[1], shadeLight * tint[2]);
+        else col.push(shadeLight, shadeLight, shadeLight);
         light.push(lit);
       }
       idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
@@ -237,13 +244,15 @@ function buildChunk(cx, cz) {
     geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     geo.setAttribute('torchLight', new THREE.Float32BufferAttribute(light, 1));
     geo.setIndex(idx);
+    if (shaderMode) geo.computeVertexNormals();
     return geo;
   });
   if (old) {
     old.forEach((m, i) => { m.geometry.dispose(); m.geometry = geos[i]; });
   } else {
-    const meshes = [new THREE.Mesh(geos[0], material), new THREE.Mesh(geos[1], waterMaterial), new THREE.Mesh(geos[2], glowMaterial)];
+    const meshes = [new THREE.Mesh(geos[0], shaderMode ? shadedMaterial : material), new THREE.Mesh(geos[1], shaderMode ? shadedWaterMaterial : waterMaterial), new THREE.Mesh(geos[2], glowMaterial)];
     meshes[1].renderOrder = 1;
+    meshes[0].castShadow = meshes[0].receiveShadow = shaderMode;
     scene.add(...meshes);
     chunkMeshes.set(key, meshes);
   }

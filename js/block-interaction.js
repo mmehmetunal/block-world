@@ -172,6 +172,13 @@ function placeBlock() {
   }
   if (get(hit.x, hit.y, hit.z) === B.chest && !targetedMob(hit)) { openChest(hit.x, hit.y, hit.z); return; }
   const { px: x, py: y, pz: z } = hit;
+  // Yarım bloğun üstüne aynısı konunca tam blok olur
+  if (inventory[selected] && mergeSlab(hit, inventory[selected].key)) {
+    blockSound(get(hit.x, hit.y, hit.z), 'place');
+    rebuildAround(hit.x, hit.z);
+    takeFromSlot(selected, 1);
+    return;
+  }
   if (!inBounds(x, y, z) || (isTargetable(get(x, y, z)) && !BLOCKS[get(x, y, z)].replaceable)) return;
   const p = player;
   const overlapsPlayer = x < p.x + W && x + 1 > p.x - W && y < p.y + H && y + 1 > p.y && z < p.z + W && z + 1 > p.z - W;
@@ -237,7 +244,8 @@ function placeBlock() {
   }
   if (!slot || !ITEMS[slot.key].block) return;
   if (mobs.some(m => x < m.x + m.w && x + 1 > m.x - m.w && y < m.y + m.h && y + 1 > m.y && z < m.z + m.w && z + 1 > m.z - m.w)) return;
-  set(x, y, z, ITEMS[slot.key].block);
+  // Şekilli bloklar bakış yönüne ve tıklanan yarıya göre döner
+  set(x, y, z, SHAPE_FAMILIES[slot.key] ? shapeVariant(slot.key, hit) : ITEMS[slot.key].block);
   if (slot.key === 'crafting_table') guideFlags.table = true;
   blockSound(ITEMS[slot.key].block, 'place');
   rebuildAround(x, z);

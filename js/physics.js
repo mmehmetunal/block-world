@@ -30,8 +30,8 @@ function overlapsBlock(e, block) {
   return false;
 }
 // Oyuncu ve canlılar için ortak AABB fiziği: e = { x, y, z, w, h, vx, vy, vz, onGround }
-// Bloğun hücre içindeki çarpışma kutusu [x0, y0, z0, x1, y1, z1]: kapı levhası (box), alçak blok (height) ya da tam hücre.
-const blockBox = b => BLOCKS[b].box || [0, 0, 0, 1, BLOCKS[b].height || 1, 1];
+// Bloğun hücre içindeki çarpışma kutuları [x0, y0, z0, x1, y1, z1]: şekil (shapes.js), kapı levhası (box), alçak blok (height) ya da tam hücre.
+const blockBoxes = (b, x, y, z) => BLOCKS[b].model === 'shape' ? shapeBoxes(b, x, y, z) : [BLOCKS[b].box || [0, 0, 0, 1, BLOCKS[b].height || 1, 1]];
 // e kutusu (x, y, z) konumundayken kesiştiği blok kutuları, dünya koordinatında. Dünya kenarı duvardır.
 function overlappingBoxes(e, x, y, z) {
   const boxes = [];
@@ -40,19 +40,27 @@ function overlappingBoxes(e, x, y, z) {
       for (let bz = Math.floor(z - e.w); bz <= Math.floor(z + e.w); bz++) {
         const b = get(bx, by, bz);
         if (!isSolid(b)) continue;
-        const [x0, y0, z0, x1, y1, z1] = blockBox(b);
-        const box = [bx + x0, by + y0, bz + z0, bx + x1, by + y1, bz + z1];
-        if (x - e.w < box[3] && x + e.w > box[0] && y < box[4] && y + e.h > box[1] && z - e.w < box[5] && z + e.w > box[2]) boxes.push(box);
+        for (const [x0, y0, z0, x1, y1, z1] of blockBoxes(b, bx, by, bz)) {
+          const box = [bx + x0, by + y0, bz + z0, bx + x1, by + y1, bz + z1];
+          if (x - e.w < box[3] && x + e.w > box[0] && y < box[4] && y + e.h > box[1] && z - e.w < box[5] && z + e.w > box[2]) boxes.push(box);
+        }
       }
   return boxes;
 }
 const collides = (e, x, y, z) => overlappingBoxes(e, x, y, z).length > 0;
+// Yerdeyken en çok bu kadar yüksek bir basamağa (yarım blok, merdiven, eğim) kendiliğinden çıkılır.
+const STEP_HEIGHT = 0.6;
 // Çarpışma olduysa varlığı çarptığı kutunun yüzüne dayar ve true döner.
-function moveAxis(e, axis, d) {
+function moveAxis(e, axis, d, grounded) {
   if (!d) return false;
   e[axis] += d;
   const boxes = overlappingBoxes(e, e.x, e.y, e.z);
   if (!boxes.length) return false;
+  // Yatay çarpışmada alçak basamağın üstüne çık (üstü boşsa)
+  if (axis !== 'y' && grounded) {
+    const rise = Math.max(...boxes.map(b => b[4])) - e.y;
+    if (rise > 0 && rise <= STEP_HEIGHT && !collides(e, e.x, e.y + rise + 0.001, e.z)) { e.y += rise + 0.001; return false; }
+  }
   const i = { x: 0, y: 1, z: 2 }[axis];
   if (axis === 'y') {
     if (d < 0) { e.y = Math.max(...boxes.map(b => b[4])); e.onGround = true; }
@@ -68,9 +76,10 @@ function stepEntity(e, dt) {
   const steps = Math.ceil(Math.max(Math.abs(e.vx), Math.abs(e.vy), Math.abs(e.vz)) * dt / 0.4) || 1;
   let blocked = false;
   for (let i = 0; i < steps; i++) {
+    const grounded = e.onGround;
     e.onGround = false;
-    blocked = moveAxis(e, 'x', e.vx * dt / steps) || blocked;
-    blocked = moveAxis(e, 'z', e.vz * dt / steps) || blocked;
+    blocked = moveAxis(e, 'x', e.vx * dt / steps, grounded) || blocked;
+    blocked = moveAxis(e, 'z', e.vz * dt / steps, grounded) || blocked;
     moveAxis(e, 'y', e.vy * dt / steps);
   }
   return blocked;

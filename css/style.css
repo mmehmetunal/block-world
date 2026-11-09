@@ -74,6 +74,9 @@ body { margin: 0; background: var(--ew-panel-dark); color: var(--hud-fg); font-f
 #low-health { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(60, 0, 0, 0.55)); opacity: 0; transition: opacity 0.4s; }
 #sleep { position: fixed; inset: 0; pointer-events: none; background: #05070d; opacity: 0; transition: opacity 0.6s; }
 #underwater { position: fixed; inset: 0; pointer-events: none; background: rgba(30, 80, 170, 0.35); }
+/* Shader modu: hafif renk düzeltme ve kenar kararması */
+#game canvas.shaded { filter: saturate(1.12) contrast(1.05); }
+#vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle farthest-corner at center, transparent 60%, rgba(0, 0, 0, 0.28) 100%); }
 #hurt { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 40%, rgba(181, 46, 49, 0.7)); opacity: 0; }
 #blockname { position: fixed; left: 50%; bottom: calc(114px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); font: 18px var(--mc-font); text-shadow: 2px 2px 0 #3f3f3f; }
 #info { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); font-size: 12px; font-variant-numeric: tabular-nums; padding: 4px 8px; background: var(--hud-bg); border-radius: var(--ew-radius-btn); }

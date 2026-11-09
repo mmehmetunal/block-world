@@ -103,8 +103,8 @@ const liquidBlock = (kind, level) => level === 0 ? B[kind] : B[kind + '_flow_' +
 const isWater = b => liquidOf(b) === 'water';
 const isLava = b => liquidOf(b) === 'lava';
 const isPortal = b => b === B.portal_x || b === B.portal_z;
-// Işık kaynağı: meşaleler ve ışıltı taşı (lav çok sayıda olduğundan ışık kaynağı sayılmaz, yalnızca kendisi parlar)
-const isLightSource = b => isTorch(b) || b === B.glowstone;
+// Işık kaynağı: meşaleler, ışıltı taşı ve emitsLight blokları (lav çok sayıda olduğundan ışık kaynağı sayılmaz, yalnızca kendisi parlar)
+const isLightSource = b => isTorch(b) || b === B.glowstone || !!BLOCKS[b]?.emitsLight;
 const isCrop = b => b >= B.wheat_0 && b <= B.wheat_3;
 const isPlant = b => BLOCKS[b]?.model === 'cross';
 // Üstünden geçilebilen, zemin sayılmayan hücre (hava ya da bitki/meşale)

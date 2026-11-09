@@ -3,9 +3,10 @@
 // "Yeni dünya" ayarları silmez.
 
 const SETTINGS_KEY = 'settings';
-const VIEW_DISTANCES = { short: 40, normal: 70, far: 120 };
+const VIEW_DISTANCES = { short: 40, normal: 70, far: 120, ultra: 200 };
 const DEFAULT_SENSITIVITY = 0.0025;
-const settings = { sensitivity: DEFAULT_SENSITIVITY, fov: 75, viewDistance: 'normal', sound: true, invertY: false, guide: true };
+// fog: kapalıyken sis yalnızca görüş sınırında başlar; clouds: bulut katmanı (yapı videolarında kapatılabilir)
+const settings = { sensitivity: DEFAULT_SENSITIVITY, fov: 75, viewDistance: 'normal', sound: true, invertY: false, guide: true, fog: true, clouds: true, shader: false };
 
 const menuMain = document.getElementById('menu-main');
 const menuSettings = document.getElementById('menu-settings');
@@ -30,6 +31,7 @@ function applySettings() {
   document.getElementById('out-sensitivity').textContent = '%' + Math.round(settings.sensitivity / DEFAULT_SENSITIVITY * 100);
   document.getElementById('out-fov').textContent = settings.fov + '°';
   setSound(settings.sound);
+  if (settings.shader !== shaderMode) setShaderMode(settings.shader);
 }
 function saveSettings() {
   if (!db) return;
