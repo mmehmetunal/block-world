@@ -12,7 +12,7 @@ const TOGGLES = {
   sound: { on: () => settings.sound, set: on => { settings.sound = on; applySettings(); saveSettings(); return on ? 'Ses açık' : 'Ses kapalı'; } },
 };
 const tpInputs = ['x', 'y', 'z'].map(a => document.getElementById('tp-' + a));
-let confirmClear = false;
+let confirmClear = false, confirmBurj = false, confirmAnitkabir = false;
 const ACTIONS = {
   heal: healPlayer,
   feed: feedPlayer,
@@ -21,6 +21,19 @@ const ACTIONS = {
   clear: button => {
     if (!confirmClear) { confirmClear = true; button.textContent = 'Emin misin? Tekrar bas'; return null; }
     return clearInventory();
+  },
+  // Araziyi düzlediği için ikinci basışta kurar
+  burj: button => {
+    if (!confirmBurj) { confirmBurj = true; button.textContent = 'Araziyi düzleyecek. Tekrar bas'; return null; }
+    confirmBurj = false;
+    closeControl();
+    return buildBurjKhalifa();
+  },
+  anitkabir: button => {
+    if (!confirmAnitkabir) { confirmAnitkabir = true; button.textContent = 'Alanı düzleyecek. Tekrar bas'; return null; }
+    confirmAnitkabir = false;
+    closeControl();
+    return buildAnitkabir();
   },
   items: () => { closeControl(); openPicker(); return null; },
   // Kutulardaki blok koordinatının ortasına
@@ -57,6 +70,13 @@ controlEl.querySelectorAll('[data-distance]').forEach(b => b.addEventListener('c
   toast('Görüş mesafesi: ' + b.textContent);
   renderControl();
 }));
+controlEl.querySelectorAll('[data-clouds]').forEach(b => b.addEventListener('click', () => {
+  settings.clouds = b.dataset.clouds;
+  applySettings();
+  saveSettings();
+  toast('Bulutlar: ' + b.textContent);
+  renderControl();
+}));
 controlEl.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => {
   const t = TOGGLES[b.dataset.toggle];
   toast(t.set(!t.on()));
@@ -85,8 +105,11 @@ function renderControl() {
   });
   controlEl.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('on', Number(b.dataset.view) === view));
   controlEl.querySelectorAll('[data-distance]').forEach(b => b.classList.toggle('on', b.dataset.distance === settings.viewDistance));
+  controlEl.querySelectorAll('[data-clouds]').forEach(b => b.classList.toggle('on', b.dataset.clouds === settings.clouds));
   document.getElementById('control-clock').textContent = clockText().split(' · ')[1];
   if (!confirmClear) controlEl.querySelector('[data-action="clear"]').textContent = 'Envanteri boşalt';
+  if (!confirmAnitkabir) controlEl.querySelector('[data-action="anitkabir"]').textContent = 'Anıtkabir kur';
+  if (!confirmBurj) controlEl.querySelector('[data-action="burj"]').textContent = 'Burj Khalifa kur (1:4 ölçek)';
 }
 function openControl() {
   if (inventoryOpen) closeInventory();
@@ -94,6 +117,8 @@ function openControl() {
   for (const k in keys) keys[k] = false;
   mining = false;
   confirmClear = false;
+  confirmBurj = false;
+  confirmAnitkabir = false;
   [player.x, player.y, player.z].forEach((v, i) => { tpInputs[i].value = Math.floor(v); });
   renderControl();
   controlEl.hidden = false;

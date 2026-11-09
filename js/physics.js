@@ -13,7 +13,7 @@ function spawn() {
     return;
   }
   const x = SPAWN_X, z = SPAWN_Z;
-  let y = SY - 1;
+  let y = columnTop(x, z);
   while (y > 0 && passable(get(x, y - 1, z))) y--;
   Object.assign(player, { x: x + 0.5, y: y, z: z + 0.5, vx: 0, vy: 0, vz: 0, kx: 0, kz: 0, fallPeak: null });
 }
@@ -30,29 +30,38 @@ function overlapsBlock(e, block) {
   return false;
 }
 // Oyuncu ve canlılar için ortak AABB fiziği: e = { x, y, z, w, h, vx, vy, vz, onGround }
-// Bloğun hücre içindeki çarpışma kutusu [x0, y0, z0, x1, y1, z1]: kapı levhası (box), alçak blok (height) ya da tam hücre.
-const blockBox = b => BLOCKS[b].box || [0, 0, 0, 1, BLOCKS[b].height || 1, 1];
-// e kutusu (x, y, z) konumundayken kesiştiği blok kutuları, dünya koordinatında. Dünya kenarı duvardır.
+// Bloğun hücre içindeki çarpışma kutuları [x0, y0, z0, x1, y1, z1]: şekilli blok (merdiven, çit…), kapı levhası (box),
+// alçak blok (height) ya da tam hücre.
+const blockBoxes = (b, x, y, z) => isShape(b) ? shapeBoxes(b, x, y, z, true) : [BLOCKS[b].box || [0, 0, 0, 1, BLOCKS[b].height || 1, 1]];
+// e kutusu (x, y, z) konumundayken kesiştiği blok kutuları, dünya koordinatında. Bir alttaki hücreye de bakılır
+// (çit ve duvar 1,5 blok yüksektir).
 function overlappingBoxes(e, x, y, z) {
   const boxes = [];
   for (let bx = Math.floor(x - e.w); bx <= Math.floor(x + e.w); bx++)
-    for (let by = Math.floor(y); by <= Math.floor(y + e.h - 0.001); by++)
+    for (let by = Math.floor(y) - 1; by <= Math.floor(y + e.h - 0.001); by++)
       for (let bz = Math.floor(z - e.w); bz <= Math.floor(z + e.w); bz++) {
         const b = get(bx, by, bz);
-        if (!isSolid(b)) continue;
-        const [x0, y0, z0, x1, y1, z1] = blockBox(b);
-        const box = [bx + x0, by + y0, bz + z0, bx + x1, by + y1, bz + z1];
-        if (x - e.w < box[3] && x + e.w > box[0] && y < box[4] && y + e.h > box[1] && z - e.w < box[5] && z + e.w > box[2]) boxes.push(box);
+        if (!isSolid(b) || (by < Math.floor(y) && !BLOCKS[b].tall)) continue;
+        for (const [x0, y0, z0, x1, y1, z1] of blockBoxes(b, bx, by, bz)) {
+          const box = [bx + x0, by + y0, bz + z0, bx + x1, by + y1, bz + z1];
+          if (x - e.w < box[3] && x + e.w > box[0] && y < box[4] && y + e.h > box[1] && z - e.w < box[5] && z + e.w > box[2]) boxes.push(box);
+        }
       }
   return boxes;
 }
 const collides = (e, x, y, z) => overlappingBoxes(e, x, y, z).length > 0;
-// Çarpışma olduysa varlığı çarptığı kutunun yüzüne dayar ve true döner.
-function moveAxis(e, axis, d) {
+// Yerdeki varlık en çok bu kadar yüksek bir kutunun (yarım blok, merdiven basamağı) üstüne zıplamadan çıkar.
+const STEP_HEIGHT = 0.6;
+// Çarpışma olduysa varlığı çarptığı kutunun yüzüne dayar ve true döner. canStep: yerde, alçak basamağa çıkabilir.
+function moveAxis(e, axis, d, canStep) {
   if (!d) return false;
   e[axis] += d;
   const boxes = overlappingBoxes(e, e.x, e.y, e.z);
   if (!boxes.length) return false;
+  if (canStep && axis !== 'y') {
+    const rise = Math.max(...boxes.map(b => b[4])) - e.y;
+    if (rise > 0 && rise <= STEP_HEIGHT && !collides(e, e.x, e.y + rise, e.z)) { e.y += rise; return false; }
+  }
   const i = { x: 0, y: 1, z: 2 }[axis];
   if (axis === 'y') {
     if (d < 0) { e.y = Math.max(...boxes.map(b => b[4])); e.onGround = true; }
@@ -68,9 +77,10 @@ function stepEntity(e, dt) {
   const steps = Math.ceil(Math.max(Math.abs(e.vx), Math.abs(e.vy), Math.abs(e.vz)) * dt / 0.4) || 1;
   let blocked = false;
   for (let i = 0; i < steps; i++) {
+    const grounded = e.onGround;
     e.onGround = false;
-    blocked = moveAxis(e, 'x', e.vx * dt / steps) || blocked;
-    blocked = moveAxis(e, 'z', e.vz * dt / steps) || blocked;
+    blocked = moveAxis(e, 'x', e.vx * dt / steps, grounded) || blocked;
+    blocked = moveAxis(e, 'z', e.vz * dt / steps, grounded) || blocked;
     moveAxis(e, 'y', e.vy * dt / steps);
   }
   return blocked;

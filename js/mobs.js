@@ -84,7 +84,7 @@ function hurtMob(m, amount, dirX, dirZ) {
   if (m.health <= 0) m.dying = 0.5;
 }
 function surfaceY(x, z) {
-  let y = SY - 1;
+  let y = columnTop(x, z);
   while (y > 0 && passable(get(x, y - 1, z))) y--;
   return y;
 }
@@ -339,7 +339,7 @@ function renderMob(m) {
 }
 // Başının üstündeki sütunda hiç blok yoksa (yaprak da gölge sayılır) gökyüzünü görür.
 function skyAbove(m) {
-  for (let y = Math.floor(m.y + m.h); y < SY; y++) if (isSolid(get(Math.floor(m.x), y, Math.floor(m.z)))) return false;
+  for (let y = Math.floor(m.y + m.h), top = columnTop(m.x, m.z); y <= top; y++) if (isSolid(get(Math.floor(m.x), y, Math.floor(m.z)))) return false;
   return true;
 }
 // Yanma parçacıkları: canlının üstünde yükselip küçülen turuncu-kırmızı küpler.

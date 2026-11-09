@@ -41,6 +41,22 @@ function teleport(x, y, z) {
   buildAround(x, z, 1);
   return `Işınlandın: ${player.x.toFixed(1)} ${player.y.toFixed(1)} ${player.z.toFixed(1)}`;
 }
+// Oyuncunun 34 blok önüne 1:4 ölçekli Burj Khalifa kurar (yalnızca ana dünyada); meydan araziyi düzler.
+function buildBurjKhalifa() {
+  if (dimension !== 'overworld') return "Burj Khalifa yalnızca ana dünyada kurulur";
+  const x = Math.floor(player.x - Math.sin(player.yaw) * 34), z = Math.floor(player.z - Math.cos(player.yaw) * 34);
+  const tower = placeBurjKhalifa(x, z);
+  return `Burj Khalifa kuruldu: ${tower.x} ${tower.y} ${tower.z} (1 blok = ${BURJ.scale} m, ${tower.height} blok yüksek)`;
+}
+// Oyuncunun önüne Anıtkabir'i kurar: Aslanlı Yol baktığı ana yönde 8 blok önden başlar (yalnızca ana dünyada); alanı düzler.
+function buildAnitkabir() {
+  if (dimension !== 'overworld') return "Anıtkabir yalnızca ana dünyada kurulur";
+  const sx = -Math.sin(player.yaw), sz = -Math.cos(player.yaw);
+  const [fx, fz] = Math.abs(sx) > Math.abs(sz) ? [Math.sign(sx), 0] : [0, Math.sign(sz)];
+  const site = placeAnitkabir(Math.floor(player.x) + fx * 8, Math.floor(player.z) + fz * 8, fx, fz);
+  return `Anıtkabir kuruldu: Aslanlı Yol ${site.x} ${site.y} ${site.z}, Şeref Holü ${site.hall.join(' ')}`;
+}
+Object.assign(window.game, { buildBurjKhalifa, buildAnitkabir });
 function clearInventory() {
   inventory.fill(null);
   renderInventory();

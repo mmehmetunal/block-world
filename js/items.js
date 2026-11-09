@@ -129,19 +129,27 @@ const extraOf = s => s.durability !== undefined ? { durability: s.durability } :
 
 // HUD'da kullanılacak simge (data URL)
 // Bloklar Minecraft envanterindeki gibi izometrik küp olarak çizilir: üst yüz en açık, sol yüz biraz, sağ yüz daha koyu.
+// Şekilli bloklar (merdiven, yarım blok, çit, duvar) kutuları arkadan öne çizilerek; demir parmaklık düz doku olarak.
 function blockIcon(def) {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
-  const face = (tile, a, b, cc, d, e, f, shadow) => {
+  if (def.shape === 'bars') { g.drawImage(atlas, def.side * T, 0, T, T, 0, 0, 64, 64); return c.toDataURL(); }
+  // Hücre noktasının simgedeki yeri: küpün köşeleri üst (32, 2), sağ (62, 17), alt (32, 32), sol (2, 17); yan yüzler 30 piksel iner.
+  const at = (x, y, z) => [32 + (x - z) * 30, 2 + (x + z) * 15 + (1 - y) * 30];
+  // Dokunun (sx, sy, sw, sh) piksel bölgesi, iki eksen vektörüyle simgeye
+  const face = (tile, [sx, sy, sw, sh], a, b, cc, d, [e, f], shadow) => {
     g.setTransform(a, b, cc, d, e, f);
-    g.drawImage(atlas, tile * T, 0, T, T, 0, 0, T, T);
-    if (shadow) { g.fillStyle = `rgba(0, 0, 0, ${shadow})`; g.fillRect(0, 0, T, T); }
+    g.drawImage(atlas, tile * T + sx, sy, sw, sh, 0, 0, sw, sh);
+    if (shadow) { g.fillStyle = `rgba(0, 0, 0, ${shadow})`; g.fillRect(0, 0, sw, sh); }
   };
-  // Köşeler: üst (32, 2), sağ (62, 17), alt (32, 32), sol (2, 17); yan yüzler 30 piksel aşağı iner.
-  face(def.top, 30 / 16, 15 / 16, -30 / 16, 15 / 16, 32, 2, 0);
-  face(def.side, 30 / 16, 15 / 16, 0, 30 / 16, 2, 17, 0.25);
-  face(def.side, 30 / 16, -15 / 16, 0, 30 / 16, 32, 32, 0.45);
+  const boxes = def.model === 'shape' ? [...shapeIconBoxes(def)].sort((p, q) => p[0] + p[1] + p[2] - q[0] - q[1] - q[2]) : [[0, 0, 0, 1, 1, 1]];
+  for (const [x0, y0, z0, x1, y1, z1] of boxes) {
+    const [X0, Y0, Z0, X1, Y1, Z1] = [x0, y0, z0, x1, y1, z1].map(v => v * T);
+    face(def.top, [X0, Z0, X1 - X0, Z1 - Z0], 30 / 16, 15 / 16, -30 / 16, 15 / 16, at(x0, y1, z0), 0);
+    face(def.side, [X0, T - Y1, X1 - X0, Y1 - Y0], 30 / 16, 15 / 16, 0, 30 / 16, at(x0, y1, z1), 0.25);
+    face(def.side, [T - Z1, T - Y1, Z1 - Z0, Y1 - Y0], 30 / 16, -15 / 16, 0, 30 / 16, at(x1, y1, z1), 0.45);
+  }
   return c.toDataURL();
 }
 const iconCache = {};

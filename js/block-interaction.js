@@ -237,9 +237,12 @@ function placeBlock() {
   }
   if (!slot || !ITEMS[slot.key].block) return;
   if (mobs.some(m => x < m.x + m.w && x + 1 > m.x - m.w && y < m.y + m.h && y + 1 > m.y && z < m.z + m.w && z + 1 > m.z - m.w)) return;
-  set(x, y, z, ITEMS[slot.key].block);
+  let id = ITEMS[slot.key].block;
+  // Merdiven ve yarım blok: bir bloğun altına ya da yan yüzün üst yarısına konunca ters; merdiven bakılan yöne döner
+  if (isShape(id)) id = shapeVariant(id, y < hit.y || (y === hit.y && aim.o.y + aim.d.y * hit.t - y > 0.5));
+  set(x, y, z, id);
   if (slot.key === 'crafting_table') guideFlags.table = true;
-  blockSound(ITEMS[slot.key].block, 'place');
+  blockSound(id, 'place');
   rebuildAround(x, z);
   takeFromSlot(selected, 1);
 }

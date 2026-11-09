@@ -26,6 +26,25 @@ RECIPES.push(
   { pattern: ['PPP', 'P.P', 'PPP'], keys: { P: 'planks' }, out: ['chest', 1] },
   { pattern: ['I', 'C'], keys: { I: 'iron_ingot', C: 'coal' }, out: ['flint_and_steel', 1] },
 );
+// Şekilli bloklar ve metal bloklar
+for (const [prefix, src] of SHAPE_MATERIALS) {
+  const M = BLOCK_ITEM[src];
+  RECIPES.push(
+    { pattern: ['M..', 'MM.', 'MMM'], keys: { M }, out: [prefix + '_stairs', 4] },
+    { pattern: ['..M', '.MM', 'MMM'], keys: { M }, out: [prefix + '_stairs', 4] },
+    { pattern: ['MMM'], keys: { M }, out: [prefix + '_slab', 6] },
+  );
+}
+RECIPES.push(
+  { pattern: ['PSP', 'PSP'], keys: { P: 'planks', S: 'stick' }, out: ['oak_fence', 3] },
+  { pattern: ['NNN', 'NNN'], keys: { N: 'nether_brick' }, out: ['nether_brick_fence', 6] },
+  { pattern: ['CCC', 'CCC'], keys: { C: 'cobble' }, out: ['cobblestone_wall', 6] },
+  { pattern: ['III', 'III'], keys: { I: 'iron_ingot' }, out: ['iron_bars', 16] },
+  { pattern: ['III', 'III', 'III'], keys: { I: 'iron_ingot' }, out: ['iron_block', 1] },
+  { pattern: ['B'], keys: { B: 'iron_block' }, out: ['iron_ingot', 9] },
+  { pattern: ['DDD', 'DDD', 'DDD'], keys: { D: 'diamond' }, out: ['diamond_block', 1] },
+  { pattern: ['B'], keys: { B: 'diamond_block' }, out: ['diamond', 9] },
+);
 for (const [tierKey, tier] of Object.entries(TOOL_TIERS)) for (const [kindKey, kind] of Object.entries(TOOL_KINDS)) {
   RECIPES.push({ pattern: kind.pattern, keys: { M: tier.material, S: 'stick' }, out: [`${tierKey}_${kindKey}`, 1] });
 }

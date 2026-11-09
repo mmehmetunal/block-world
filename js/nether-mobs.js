@@ -153,12 +153,12 @@ function netherColumn() {
 // Domuz adam: kızıl taş üstünde, iki blok boş hücre
 function pigmanSpot(x, z) {
   const spots = [];
-  for (let y = 1; y < SY - 2; y++) if (get(x, y, z) === AIR && get(x, y + 1, z) === AIR && get(x, y - 1, z) === B.netherrack) spots.push(y);
+  for (let y = 1; y < NETHER_H - 2; y++) if (get(x, y, z) === AIR && get(x, y + 1, z) === AIR && get(x, y - 1, z) === B.netherrack) spots.push(y);
   return spots.length ? spots[Math.floor(Math.random() * spots.length)] : null;
 }
 // Ghast: 5x5x5'lik tamamen boş hava
 function ghastSpot(x, z) {
-  for (let y = LAVA_LEVEL + 2; y < SY - 6; y++) {
+  for (let y = LAVA_LEVEL + 2; y < NETHER_H - 6; y++) {
     let free = true;
     for (let dx = -2; dx <= 2 && free; dx++) for (let dy = 0; dy < 5 && free; dy++) for (let dz = -2; dz <= 2 && free; dz++) {
       if (get(x + dx, y + dy, z + dz) !== AIR) free = false;

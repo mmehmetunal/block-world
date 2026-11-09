@@ -4,10 +4,11 @@
 // Konsoldan ve testlerden erişim için ortak kanca nesnesi; diğer betikler buna ekler (bkz. SPEC.md "Test kancası").
 window.game = {};
 
-const T = 16, N_TILES = 52;
+const T = 16, N_TILES = 56;
 const TILE = {
   grassTop: 0, grassSide: 1, dirt: 2, stone: 3, logSide: 4, logTop: 5, leaves: 6, sand: 7, planks: 8, brick: 9, cobble: 10,
   craftingTop: 11, craftingSide: 12, furnaceFront: 13, furnaceTop: 14, sandstoneTop: 15, sandstoneSide: 16, furnaceLit: 17, glass: 18, coalOre: 19, ironOre: 20, water: 21, torch: 22, bedHeadTop: 23, bedFootTop: 24, bedSide: 25, doorLower: 26, doorUpper: 27, tallGrass: 28, poppy: 29, dandelion: 30, farmland: 31, wheat0: 32, wheat1: 33, wheat2: 34, wheat3: 35, obsidian: 36, netherrack: 37, lava: 38, glowstone: 39, chestTop: 40, chestSide: 41, diamondOre: 42, snowGrassTop: 43, snowGrassSide: 44, ice: 45, cactusSide: 46, cactusTop: 47, spruceLog: 48, spruceLeaves: 49, netherBrick: 50, spawner: 51,
+  ironBlock: 52, goldBlock: 53, diamondBlock: 54, ironBars: 55,
 };
 
 function mulberry32(a) {
@@ -203,6 +204,20 @@ for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
   px(TILE.sandstoneTop, x, y, shade([216, 203, 150], 0.92 + rnd() * 0.12));
   const band = y < 3 ? [230, 218, 166] : y > 12 ? [200, 186, 132] : [216, 203, 150];
   px(TILE.sandstoneSide, x, y, shade(band, 0.92 + rnd() * 0.12));
+}
+// Metal bloklar: kenarı koyu, sol üstü açık kabartmalı düz levha; ortada ince yatay çizgiler (Minecraft'taki gibi)
+for (const [tile, rgb] of [[TILE.ironBlock, [220, 220, 220]], [TILE.goldBlock, [246, 208, 61]], [TILE.diamondBlock, [98, 219, 214]]]) {
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const rim = x === 0 || y === 0 ? 1.12 : x === 15 || y === 15 ? 0.7 : 1;
+    const line = (y === 5 || y === 10) && x > 1 && x < 14 ? 0.88 : 1;
+    px(tile, x, y, shade(rgb, rim * line * (0.96 + rnd() * 0.06)));
+  }
+}
+// Demir parmaklık: saydam zeminde 2 piksellik koyu gri dikey çubuklar ve üstte/altta yatay bağlantı
+for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+  // Çubuklar 3–4, 7–8, 11–12, 15–0. sütunlarda: hücre ortasındaki ince levhada da (7–8) görünür
+  const bar = x % 4 === 3 || x % 4 === 0, rail = y === 0 || y === 15;
+  if (bar || rail) px(TILE.ironBars, x, y, x % 4 === 3 && !rail ? '#a8a8a8' : '#6c6c6c');
 }
 
 function tileImage(i) {

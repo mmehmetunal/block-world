@@ -83,6 +83,10 @@ const BLOCKS = [
   // Nether kalesi (82–83). Doğurucu: kafes, içinde dönen küçük blaze (blaze.js)
   { name: 'Nether tuğlası', top: TILE.netherBrick, side: TILE.netherBrick, bottom: TILE.netherBrick, breakTime: 10, tool: 'pickaxe', needsTool: true },
   { name: 'Blaze doğurucu', top: TILE.spawner, side: TILE.spawner, bottom: TILE.spawner, breakTime: 25, tool: 'pickaxe', needsTool: true, transparent: true, cutout: true, noDrop: true },
+  // Metal bloklar (84–86): dokuz külçe ya da elmastan; demir bloğu en az taş kazma, altın ve elmas demir kazma ister
+  { name: 'Demir bloğu', top: TILE.ironBlock, side: TILE.ironBlock, bottom: TILE.ironBlock, breakTime: 25, tool: 'pickaxe', needsTool: true, minTier: 2 },
+  { name: 'Altın bloğu', top: TILE.goldBlock, side: TILE.goldBlock, bottom: TILE.goldBlock, breakTime: 15, tool: 'pickaxe', needsTool: true, minTier: 3 },
+  { name: 'Elmas bloğu', top: TILE.diamondBlock, side: TILE.diamondBlock, bottom: TILE.diamondBlock, breakTime: 25, tool: 'pickaxe', needsTool: true, minTier: 3 },
 ];
 const B = { grass: 1, dirt: 2, stone: 3, log: 4, leaves: 5, sand: 6, planks: 7, brick: 8, cobble: 9, crafting_table: 10, furnace: 11, sandstone: 12, furnace_lit: 13, glass: 14, coal_ore: 15, iron_ore: 16, water: 17,
   torch_floor: 18, torch_east: 19, torch_west: 20, torch_south: 21, torch_north: 22 };
@@ -97,6 +101,7 @@ Object.assign(B, { tall_grass: 47, poppy: 48, dandelion: 49, farmland: 50, wheat
 for (let level = 1; level <= 7; level++) { B['water_flow_' + level] = 62 + level; B['lava_flow_' + level] = 69 + level; }
 // Biyom blokları
 Object.assign(B, { snowy_grass: 77, ice: 78, cactus: 79, spruce_log: 80, spruce_leaves: 81, nether_brick: 82, spawner: 83 });
+Object.assign(B, { iron_block: 84, gold_block: 85, diamond_block: 86 });
 // Sıvı yardımcıları: tür ('water', 'lava' ya da null), seviye, türe ve seviyeye göre blok
 const liquidOf = b => BLOCKS[b]?.liquid || null;
 const liquidBlock = (kind, level) => level === 0 ? B[kind] : B[kind + '_flow_' + level];

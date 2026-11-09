@@ -17,7 +17,7 @@ function forEachModifiedCell(test, fn) {
     const c = world.get(key);
     if (!c) continue;
     const [cx, cz] = key.split(',').map(Number);
-    for (let i = 0; i < c.length; i++) {
+    for (let i = 0, end = (chunkTop(c) + 1) * CH * CH; i < end; i++) {
       if (!test(c[i])) continue;
       fn(cx * CH + i % CH, Math.floor(i / (CH * CH)), cz * CH + Math.floor(i / CH) % CH, c[i]);
     }

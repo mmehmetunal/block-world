@@ -1,10 +1,13 @@
 // ---------- Dünya üretimi ----------
 // Dünya dizisi, gürültü fonksiyonları, biyomlar ve chunk başına dünya üretimi (arazi, mağara, göl, cevher, ağaç, bitki).
 
-const SY = 48, CH = 16, SEED = 20261106;
+// SY: dünya yüksekliği (Burj Khalifa 1:4 ölçekte ~207 blok). NETHER_H: Nether'in yüksekliği (tavanı bu katmanda biter).
+const SY = 256, NETHER_H = 48, CH = 16, SEED = 20261106;
 // Doğma noktası: başlangıç alanının (ilk 96×96 blok) ortası
 const SPAWN_X = 48, SPAWN_Z = 48;
-// Sonsuz dünya: chunk haritası "cx,cz" -> Uint8Array(CH × SY × CH), hücre indeksi (y * CH + lz) * CH + lx.
+// Sonsuz dünya: chunk haritası "cx,cz" -> Uint16Array(CH × SY × CH), hücre indeksi (y * CH + lz) * CH + lx.
+// Blok kimliği 16 bittir (en çok 65.535 blok türü).
+const newChunk = () => new Uint16Array(CH * SY * CH);
 // Etkin dünya (world) ana dünyanın ya da Nether'in haritasıdır; portaldan geçince değişir (nether.js).
 const worlds = { overworld: new Map(), nether: new Map() };
 let world = worlds.overworld;
@@ -15,6 +18,18 @@ const chunkAt = (x, z) => world.get(chunkKey(Math.floor(x / CH), Math.floor(z / 
 const cellIndex = (x, y, z) => (y * CH + (z - Math.floor(z / CH) * CH)) * CH + (x - Math.floor(x / CH) * CH);
 // Yüklü bir chunk'ın içinde mi
 const inBounds = (x, y, z) => y >= 0 && y < SY && !!chunkAt(x, z);
+// Chunk'taki en yüksek dolu katmanın üst sınırı (kırılan blok onu düşürmez): döngüler boş havayı taramasın.
+// Değer dizinin "top" alanında önbelleklenir; set() yükseltir.
+function chunkTop(c) {
+  if (c.top === undefined) {
+    let i = c.length - 1;
+    while (i >= 0 && c[i] === AIR) i--;
+    c.top = Math.max(0, Math.floor(i / (CH * CH)));
+  }
+  return c.top;
+}
+// (x, z) sütununun taranacak en üst katmanı: bunun üstü boştur (chunk yoksa 0)
+const columnTop = (x, z) => { const c = chunkAt(x, z); return c ? Math.min(SY - 1, chunkTop(c) + 1) : 0; };
 // Yüklenmemiş chunk hava döner; y < 0 taş (altta delik görünmesin).
 function get(x, y, z) {
   if (y < 0) return B.stone;
@@ -29,6 +44,7 @@ function set(x, y, z, v) {
   const c = chunkAt(x, z);
   if (!c) return;
   c[cellIndex(x, y, z)] = v;
+  if (v !== AIR && c.top !== undefined && y > c.top) c.top = y;
   if (generatingChunk) return;
   modifiedChunks[dimension].add(chunkKey(Math.floor(x / CH), Math.floor(z / CH)));
   if (onBlockSet) onBlockSet(x, y, z);
@@ -39,7 +55,7 @@ function ensureChunk(cx, cz, dim) {
   if (map.has(key)) return false;
   const previous = world;
   world = map;
-  map.set(key, new Uint8Array(CH * SY * CH));
+  map.set(key, newChunk());
   generatingChunk = true;
   (map === worlds.nether ? generateNetherChunk : generateChunk)(cx, cz);
   generatingChunk = false;
@@ -220,7 +236,7 @@ function generateChunk(cx, cz) {
     const chance = PLANTS[biomes[lz * CH + lx]];
     if (!chance) continue;
     const [x, z] = local(lx, lz);
-    let y = SY - 1;
+    let y = Math.min(SY - 1, heights[lz * CH + lx] + 16); // ağaç ve köy yapılarının üstünden başla
     while (y > 0 && get(x, y - 1, z) === AIR) y--;
     if (get(x, y - 1, z) !== B.grass || get(x, y, z) !== AIR) continue;
     const r = hash(x * 3 + 11, z * 5 - 7);

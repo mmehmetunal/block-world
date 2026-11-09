@@ -10,7 +10,8 @@ const scene = new THREE.Scene();
 const sky = new THREE.Color(0x9cc8ef);
 scene.background = sky;
 scene.fog = new THREE.Fog(sky, 30, 70);
-const camera = new THREE.PerspectiveCamera(75, 1, 0.05, 200);
+// Uzak düzlem: çok uzak görüşte (192 blok) ve yüksek bulutlarda (y = 248) kırpılmasın
+const camera = new THREE.PerspectiveCamera(75, 1, 0.05, 400);
 camera.rotation.order = 'YXZ';
 const HEMI_INTENSITY = 0.8, SUN_INTENSITY = 0.5;
 function addLights(s) {
@@ -81,7 +82,7 @@ function torchesNear(x0, z0, x1, z1) {
     const c = world.get(chunkKey(cx, cz));
     if (!c) continue;
     const zs = Math.max(z0, cz * CH), ze = Math.min(z1, cz * CH + CH - 1), xs = Math.max(x0, cx * CH), xe = Math.min(x1, cx * CH + CH - 1);
-    for (let y = 0; y < SY; y++) for (let z = zs; z <= ze; z++) for (let x = xs; x <= xe; x++) {
+    for (let y = 0, top = chunkTop(c); y <= top; y++) for (let z = zs; z <= ze; z++) for (let x = xs; x <= xe; x++) {
       if (isLightSource(c[(y * CH + z - cz * CH) * CH + x - cx * CH])) list.push([x + 0.5, y + 0.6, z + 0.5]);
     }
   }
@@ -109,15 +110,18 @@ function addCrossModel(buf, x, y, z, def, torches) {
     buf.idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
   }
 }
-// Hücre içindeki bir kutu (kapı levhası); hücre kenarındaki yüz komşu opak blokla çakışıyorsa çizilmez.
-function addBoxModel(buf, x, y, z, def, torches) {
-  const [x0, y0, z0, x1, y1, z1] = def.box;
+// Hücre içindeki kutular (kapı levhası, merdiven, çit…); hücre kenarındaki yüz komşu opak blokla çakışıyorsa çizilmez.
+// Kapı ve kaktüs her yüzde yan dokuyu, şekilli bloklar üst/alt yüzde kendi dokusunu kullanır (faceTiles).
+function addBoxModel(buf, x, y, z, def, torches, boxes = [def.box], faceTiles = false) {
+  for (const box of boxes) addBox(buf, x, y, z, def, torches, box, faceTiles);
+}
+function addBox(buf, x, y, z, def, torches, [x0, y0, z0, x1, y1, z1], faceTiles) {
   for (const f of FACES) {
     const [fx, fy, fz] = f.dir;
     const onEdge = (fx === 1 && x1 === 1) || (fx === -1 && x0 === 0) || (fy === 1 && y1 === 1) || (fy === -1 && y0 === 0) || (fz === 1 && z1 === 1) || (fz === -1 && z0 === 0);
     const n = get(x + fx, y + fy, z + fz);
     if (onEdge && n !== AIR && !BLOCKS[n].transparent && isSolid(n)) continue;
-    const tile = def.side;
+    const tile = faceTiles && fy === 1 ? def.top : faceTiles && fy === -1 ? def.bottom : def.side;
     const lit = torches.length ? torchLightAt(torches, x + 0.5 + fx * 0.5, y + 0.5 + fy * 0.5, z + 0.5 + fz * 0.5) : 0;
     const base = buf.pos.length / 3;
     for (const [p] of f.corners) {
@@ -193,13 +197,15 @@ function buildChunk(cx, cz) {
   // Biyom tonu sütun başına bir kez hesaplanır
   const tints = new Map();
   const tintAt = (x, z) => tints.get(x * 4096 + z) || tints.set(x * 4096 + z, BIOME_TINT[biomeAt(x, z)]).get(x * 4096 + z);
-  for (let y = 0; y < SY; y++) for (let z = cz * CH; z < cz * CH + CH; z++) for (let x = cx * CH; x < cx * CH + CH; x++) {
+  const own = world.get(chunkKey(cx, cz)), top = own ? chunkTop(own) : -1;
+  for (let y = 0; y <= top; y++) for (let z = cz * CH; z < cz * CH + CH; z++) for (let x = cx * CH; x < cx * CH + CH; x++) {
     const b = get(x, y, z);
     if (b === AIR) continue;
     const def = BLOCKS[b];
     if (def.model === 'torch') { addTorchModel(buffers[0], x, y, z, def); continue; }
     if (def.model === 'bed') { addBedModel(buffers[0], x, y, z, def, torches); continue; }
     if (def.model === 'box') { addBoxModel(buffers[0], x, y, z, def, torches); continue; }
+    if (def.model === 'shape') { addBoxModel(buffers[0], x, y, z, def, torches, shapeBoxes(b, x, y, z, false), true); continue; }
     if (def.model === 'cross') { addCrossModel(buffers[0], x, y, z, def, torches); continue; }
     if (def.model === 'portal') continue; // portal.js ayrı çizer
     const buf = buffers[def.selfLit ? 2 : def.transparent && !def.cutout ? 1 : 0];

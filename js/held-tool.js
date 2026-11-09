@@ -42,10 +42,11 @@ fpArm.add(fpBlock);
 const tpBlock = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.25));
 tpBlock.position.set(0, -0.62, -0.12);
 armR.add(tpBlock);
-// Çapraz modelli bloklar (bitkiler) ve küpü olmayan bloklar düz simge olarak tutulur.
+// Çapraz modelli bloklar (bitkiler) ve küpü olmayan bloklar düz simge olarak tutulur; merdiven, çit gibi şekilli bloklar
+// (demir parmaklık dışında) küp olarak.
 const heldAsCube = s => {
   const id = ITEMS[s.key].block;
-  return !!id && !BLOCKS[id].model && !isTorch(id);
+  return !!id && (!BLOCKS[id].model || (isShape(id) && BLOCKS[id].shape !== 'bars')) && !isTorch(id);
 };
 function updateHeldTool() {
   const s = inventory[selected];

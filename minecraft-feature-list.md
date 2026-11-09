@@ -569,6 +569,47 @@ Bu maddeler 37'den hemen sonra yapılır.
 - **Kabul ölçütü:** Panelden uçma açılınca iki kez boşlukla havalanılıyor, boşluk/Shift ile yükselip alçalınıyor; yere inince düşme hasarı yok; anahtar kapalıyken iki kez boşluk sadece zıplatıyor.
 - **Bağımlılık:** 3, 51
 
+### 54. Burj Khalifa (1:4 ölçek)
+- **Neden:** Gerçek bir yapının oyuncunun önünde ölçekli olarak kurulması; dünya yüksekliğini sınayan büyük bir yapı.
+- **Bu oyunda:**
+  - Kontrol panelindeki "Burj Khalifa kur" düğmesi (ikinci basışta) ve `/burj`: oyuncunun 34 blok önüne 207 blok yüksekliğinde (1 blok = 4 m, 828 m) kule kurar; üç kanatlı Y plan, sarmal geri çekilmeler, çekirdek, cam kabuk, katlar ve çelik ibre.
+  - Bunun için dünya yüksekliği 48'den 256'ya çıktı; Nether eskisi gibi 48 katlı. Kayıtlar boş üst katmanlar atılarak saklanır, eski kayıtlar açılır.
+- **Kabul ölçütü:** Düğme ikinci basışta kuleyi kuruyor; yükseklik 207, tepe ışıltı taşı; kademeler yukarı doğru daralıyor; giriş açık; her 4. katman tavan; kayıttan sonra kule yerinde.
+- **Bağımlılık:** 51, 53
+
+### 55. 16 bit blok kimliği
+- **Neden:** Chunk dizisi 8 bitti (`Uint8Array`), en çok 255 blok türü sığıyordu; şekilli bloklar çeşitleriyle bu sınıra yaklaştırır.
+- **Bu oyunda:** Chunk'lar `Uint16Array` (`newChunk()`); kayıt sürümü 4. Sürüm 3 kayıtları açılırken 8 bitlik chunk'lar 16 bite kopyalanır.
+- **Kabul ölçütü:** Sürüm 3 kaydı açılıyor ve blokları yerinde; chunk'lar 16 bit; 255'ten büyük değer saklanabiliyor; kimliği 86'nın üstündeki bloklar kaydedilip geri geliyor.
+- **Bağımlılık:** 4, 54
+
+### 56. Metal bloklar
+- **Neden:** Kule, köprü gibi büyük yapılarda metal görünümlü blok yoktu (kütükle idare ediliyordu).
+- **Bu oyunda:** Demir bloğu (9 demir külçe ↔ 1), altın bloğu (yalnızca eşya seçiciden; altın cevheri yok), elmas bloğu (9 elmas ↔ 1). Kazmayla kırılır; demir en az taş, altın ve elmas demir kazma ister.
+- **Kabul ölçütü:** Tarifler çalışıyor ve geri çözülüyor; adlar Türkçe; simgeler gri, sarı, turkuaz; eşya seçicide görünüyorlar.
+- **Bağımlılık:** 16, 20, 37
+
+### 57. Şekilli bloklar
+- **Minecraft'ta:** Merdiven, yarım blok, çit, duvar ve demir parmaklık; yapılarda kemer, çatı, korkuluk ve kafes için.
+- **Bu oyunda:**
+  - 6 malzemeden (tahta, kırık taş, taş, tuğla, kumtaşı, Nether tuğlası) merdiven (6 → 4) ve yarım blok (3 → 6); tahta çit (tahta + çubuk → 3), Nether tuğlası çit, kırık taş duvar (6 → 6), demir parmaklık (6 külçe → 16).
+  - Merdiven bakılan yöne konur; bloğun altına ya da yan yüzün üst yarısına konunca ters. Çit, duvar ve parmaklık yanındaki aynı şekle ve tam bloklara bağlanır.
+  - Yarım blok ve merdiven basamağına zıplamadan çıkılır (0,6 blok basamak); çit ve duvarın üstünden atlanmaz (1,5 blok).
+- **Kabul ölçütü:** Tarif çalışıyor; sağ tıkla bakılan yöne merdiven konuyor; ters çeşit seçiliyor; çit komşusuna bağlanıyor; yarım bloğa yürüyerek çıkılıyor; çite zıplayarak bile çıkılamıyor; çeşitler eşya seçicide görünmüyor.
+- **Bağımlılık:** 14, 16, 55
+
+### 58. Çok uzak görüş ve bulut yüksekliği
+- **Neden:** En uzak görüş 120 bloktu ve bulutlar 60. katmanda sabitti; büyük yapılar sisli görünüyor, bulut katmanı uzun yapıları kesiyordu.
+- **Bu oyunda:** Görüş mesafesine "Çok uzak" (192 blok, 12 chunk) eklendi; bulutlar Kapalı / Alçak (60) / Yüksek (248) seçilebilir. İkisi de ayarlarda ve kontrol panelinin Görünüm bölümünde.
+- **Kabul ölçütü:** Çok uzakta sis 192 blokta biter ve 12 chunk çevresi çizilir; yüksek bulut 248'de, kapalıyken görünmez; ayar kaydedilir.
+- **Bağımlılık:** 30, 31, 51, 54
+
+### 59. Anıtkabir
+- **Neden:** Yeni şekilli blokları (merdiven, yarım blok, duvar, parmaklık) büyük bir yapıda sınamak ve video çekmek.
+- **Bu oyunda:** Kontrol panelinde "Anıtkabir kur" (ikinci basışta) ve `/anitkabir`: oyuncunun önünden başlayan Aslanlı Yol (24 aslan), on kule, desenli tören meydanı ve revaklar, basamaklı kaide üstünde sütunlu Şeref Holü ve lahit, yarıya inmiş bayrak. 1 blok ≈ 1,5 m.
+- **Kabul ölçütü:** Düğme ikinci basışta kuruyor; 24 aslan; meydan döşemesi; holde sütunlar ve lahit; kaideye merdivenle çıkılıyor; bayrak ve kule çatıları yerinde; chunk'lar kayda giriyor.
+- **Bağımlılık:** 51, 57
+
 ---
 
 ## İleride (şimdilik yapılmayacak)
