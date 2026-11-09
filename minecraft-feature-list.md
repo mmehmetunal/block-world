@@ -604,6 +604,15 @@ Bu maddeler 37'den hemen sonra yapılır.
 - **Bu oyunda:** Video aracının örnek yapısı: Y planlı, kademeli daralan, metal ve camlı gökdelen ve sivri tepe (~240 blok). Kat kat kurulur.
 - **Bağımlılık:** 54, 56, 57, 59
 
+### 61. Ultra görüntü
+- **Bu oyunda:** Kontrol panelinde "Ultra görüntü" (shader modunu da açar): sahne bir hedef dokuya çizilir, parlak bölgeler bulanıklaştırılıp geri eklenir (ışık parlaması), sinematik renk düzeltmesi; 4096 piksellik daha keskin gölge; su gökyüzünü ve güneşi yansıtır.
+- **Kabul ölçütü:** Anahtar açılıp kapanıyor; açıkken görüntü parlamalı çiziliyor; shader kapanınca ultra da kapanıyor.
+- **Bağımlılık:** 58
+
+### 62. Kısa videolar ve dev heykel
+- **Bu oyunda:** Video aracında hız eğrisi: kurulumun ortası 2x oynar, yarım saniyelik yumuşak geçiş ve köşede ">> 2x" rozeti; videolar 10–15 sn. Giriş ultra görünümde bitmiş yapıyı gösterir. İkinci örnek sahne: dövüş duruşunda özgün bir dev heykel (bakır, patina, parlayan gözler), kademeli kaide ve mazgallı sur.
+- **Bağımlılık:** 59, 60, 61
+
 ---
 
 ## İleride (şimdilik yapılmayacak)

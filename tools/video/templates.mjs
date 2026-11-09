@@ -4,7 +4,9 @@
 // İçi boş kabuk: inside(x, y, z) doğru olan hücrelerden yalnızca görünenleri (yanında ya da üstünde dışarısı olan) üretir.
 // Katman katman (aşağıdan yukarı), her katmanda merkez çevresinde açıya göre sıralı. material(x, y, z, info) anahtar döndürür;
 // info.side: dışarı bakan yatay yön [dx, dz] (yoksa null), info.roof: üstü açık mı.
-export function shell({ inside, bounds: [x0, y0, z0, x1, y1, z1], material }) {
+export function shell({ inside, bounds, material }) {
+  // Sınırlar tamsayıya yuvarlanır (blok koordinatı kesirli olmasın)
+  const [x0, y0, z0] = bounds.slice(0, 3).map(Math.floor), [x1, y1, z1] = bounds.slice(3).map(Math.ceil);
   const out = [];
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
   for (let y = y0; y <= y1; y++) {

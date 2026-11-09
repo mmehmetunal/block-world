@@ -35,24 +35,26 @@ export default {
   name: 'burj-khalifa',
   size: '720x1280',
   fps: 30,
-  seconds: 28,
-  hold: 0.2,
+  // İçerik 18 sn; kurulumun ortası 2x oynar, giriş (3 sn) ile birlikte video ~14 sn
+  seconds: 18,
+  hold: 0.17,
+  fast: 2,
   // Kurulumun ilk %20'si zemin düzleme ve meydan (videoda görünür)
   prepareShare: 0.2,
   time: 0.17,
   shader: true,
+  ultra: true,
   fog: false,
   clouds: false,
   view: 'ultra',
   fov: 85,
   center: [48, 48],
-  // Giriş: bitmiş kule önce shader kapalı, sonra açık; ardından "Nasıl yapıldı?" ile kuruluma geçilir
+  // Giriş: bitmiş kule ultra görünümde; ardından "Nasıl yapıldı?" ile kuruluma geçilir
   intro: {
-    seconds: 6,
+    seconds: 3,
     segments: [
-      { until: 0.38, shader: false, caption: 'Shader kapalı' },
-      { until: 0.78, shader: true, caption: 'Shader açık' },
-      { until: 1, shader: true, caption: 'Nasıl yapıldı?' },
+      { until: 0.6, shader: true, ultra: true, caption: 'Ultra shader' },
+      { until: 1, shader: true, ultra: true, caption: 'Nasıl yapıldı?' },
     ],
     // Alttan, yukarı bakan ve yavaşça yükselen kamera; bütün kule kadrajda
     camera(t, { ground, center: [cx, cz] }) {

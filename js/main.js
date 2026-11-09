@@ -216,9 +216,7 @@ function frame(now) {
   scene.fog.far = cameraInWater ? 8 : dimension === 'nether' ? NETHER_FOG_FAR : viewDistance;
   if (cameraInWater) scene.fog.color.setRGB(0.1, 0.25, 0.5).multiplyScalar(brightnessUniform.value);
   info.textContent = `${clockText()} · X ${Math.floor(p.x)} · Y ${Math.floor(p.y)} · Z ${Math.floor(p.z)}`;
-  renderer.clear();
-  renderer.render(scene, camera);
-  if (view === 1 && !rig) { renderer.clearDepth(); renderer.render(fpScene, fpCam); }
+  renderWorld(view === 1 && !rig);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

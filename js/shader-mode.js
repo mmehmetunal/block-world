@@ -23,16 +23,28 @@ shadedMaterial.onBeforeCompile = shader => {
       '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * vTorch * vec3(1.0, 0.8, 0.55) * 0.9;');
 };
 // Su: üst yüzde dalga, ışık kıpırtısı, daha koyu ve daha az saydam
-const waterTime = { value: 0 };
+// Ultra görünümde (waterUltra = 1) su yüzeyi gökyüzünü (fresnel) ve güneşi (parlama) yansıtır
+const waterTime = { value: 0 }, waterUltra = { value: 0 }, waterSky = { value: new THREE.Color() }, waterSun = { value: new THREE.Vector3(0, 1, 0) };
 const shadedWaterMaterial = withTorchLight(new THREE.MeshBasicMaterial({ map: texture, vertexColors: true, transparent: true, opacity: 0.78, depthWrite: false, color: 0x7fa8d8 }));
 const baseWaterCompile = shadedWaterMaterial.onBeforeCompile;
 shadedWaterMaterial.onBeforeCompile = shader => {
   baseWaterCompile(shader);
-  shader.uniforms.uTime = waterTime;
-  shader.vertexShader = 'uniform float uTime;\nvarying vec3 vWorld;\n' + shader.vertexShader.replace('#include <begin_vertex>',
-    '#include <begin_vertex>\n  if (normal.y > 0.5) transformed.y += sin(position.x * 1.7 + uTime * 1.6) * 0.04 + cos(position.z * 1.3 + uTime * 1.2) * 0.04 - 0.06;\n  vWorld = position;');
-  shader.fragmentShader = 'uniform float uTime;\nvarying vec3 vWorld;\n' + shader.fragmentShader.replace('#include <color_fragment>',
-    '#include <color_fragment>\n  float glint = pow(max(0.0, sin(vWorld.x * 2.3 + uTime * 2.0) * sin(vWorld.z * 2.1 - uTime * 1.7)), 6.0);\n  diffuseColor.rgb += vec3(0.35, 0.4, 0.45) * glint;');
+  Object.assign(shader.uniforms, { uTime: waterTime, uUltra: waterUltra, uSky: waterSky, uSun: waterSun });
+  shader.vertexShader = 'uniform float uTime;\nvarying vec3 vWorld;\nvarying float vUp;\n' + shader.vertexShader.replace('#include <begin_vertex>',
+    '#include <begin_vertex>\n  if (normal.y > 0.5) transformed.y += sin(position.x * 1.7 + uTime * 1.6) * 0.04 + cos(position.z * 1.3 + uTime * 1.2) * 0.04 - 0.06;\n  vWorld = position;\n  vUp = normal.y;');
+  shader.fragmentShader = 'uniform float uTime;\nuniform float uUltra;\nuniform vec3 uSky;\nuniform vec3 uSun;\nvarying vec3 vWorld;\nvarying float vUp;\n' + shader.fragmentShader.replace('#include <color_fragment>',
+    `#include <color_fragment>
+  float glint = pow(max(0.0, sin(vWorld.x * 2.3 + uTime * 2.0) * sin(vWorld.z * 2.1 - uTime * 1.7)), 6.0);
+  diffuseColor.rgb += vec3(0.35, 0.4, 0.45) * glint;
+  if (uUltra > 0.5 && vUp > 0.5) {
+    // Dalga eğiminden yüzey normali, bakış açısına göre gök yansıması ve güneş parlaması
+    vec3 n = normalize(vec3(-0.068 * cos(vWorld.x * 1.7 + uTime * 1.6) - 0.05 * cos(vWorld.x * 4.1 + vWorld.z * 3.3 + uTime * 3.0), 1.0, 0.052 * sin(vWorld.z * 1.3 + uTime * 1.2) - 0.05 * cos(vWorld.z * 3.7 - vWorld.x * 2.9 + uTime * 2.6)));
+    vec3 v = normalize(cameraPosition - vWorld);
+    float fresnel = pow(1.0 - max(dot(n, v), 0.0), 3.0);
+    diffuseColor.rgb = mix(diffuseColor.rgb, uSky, 0.08 + 0.6 * fresnel);
+    diffuseColor.rgb += vec3(1.0, 0.92, 0.75) * pow(max(dot(reflect(-normalize(uSun), n), v), 0.0), 180.0) * 2.5;
+    diffuseColor.a = mix(diffuseColor.a, 1.0, fresnel * 0.6);
+  }`);
 };
 // Gökyüzü kubbesi: ufuk açık, tepe koyu mavi; güneşin çevresi parlar. Sis rengi ufuk rengiyle aynı kalır.
 const skyDome = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), new THREE.ShaderMaterial({
@@ -67,6 +79,8 @@ function cornerAO(x, y, z, dir, p) {
 }
 
 function setShaderMode(on) {
+  // Shader kapanınca ultra görünüm de kapanır
+  if (!on && ultraMode) setUltraMode(false);
   shaderMode = on;
   settings.shader = on;
   renderer.toneMapping = on ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
@@ -109,5 +123,7 @@ function updateShaderMode(dt) {
   u.uZenith.value.copy(ZENITH_NIGHT).lerp(ZENITH_DAY, day);
   u.uSun.value.copy(sunDir);
   u.uGlow.value = Math.max(0, sunDir.y + 0.2);
+  waterSky.value.copy(sky).lerp(u.uZenith.value, 0.7);
+  waterSun.value.copy(lightDir);
 }
 Object.assign(window.game, { setShaderMode, isShaderMode: () => shaderMode });

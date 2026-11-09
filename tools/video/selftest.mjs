@@ -24,14 +24,15 @@ const out = mkdtempSync(join(tmpdir(), 'block-world-video-test-'));
 const run = spawnSync('node', [join(here, 'record.mjs'), join(scenesDir, 'burj-khalifa.mjs'), '--seconds', '1', '--fps', '10', '--size', '180x320', '--out', out], { encoding: 'utf8' });
 const mp4 = join(out, 'burj-khalifa.mp4');
 const burj = (await import(pathToFileURL(join(scenesDir, 'burj-khalifa.mjs')).href)).default;
-const expectedFrames = 10 + Math.round((burj.intro?.seconds || 0) * 10); // giriş + 1 sn kurulum
+// giriş + 1 sn kurulum; hızlandırılan bölüm kare sayısını en çok fast katı azaltır
+const introFrames = Math.round((burj.intro?.seconds || 0) * 10), minFrames = introFrames + Math.ceil(10 / (burj.fast || 1)), maxFrames = introFrames + 10;
 const probe = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-count_frames', '-show_entries', 'stream=width,height,nb_read_frames', '-of', 'csv=p=0', mp4], { encoding: 'utf8' });
 const [w, h, frames] = probe.stdout.trim().split(',').map(Number);
 results.recording = { exit: run.status, width: w, height: h, frames, bytes: run.status === 0 ? statSync(mp4).size : 0, log: run.status ? (run.stderr || run.stdout).slice(-500) : undefined };
 rmSync(out, { recursive: true, force: true });
 
 const ok = Object.entries(results).every(([k, r]) => k === 'recording'
-  ? r.exit === 0 && r.width === 180 && r.height === 320 && r.frames === expectedFrames && r.bytes > 1000
+  ? r.exit === 0 && r.width === 180 && r.height === 320 && r.frames >= minFrames && r.frames <= maxFrames && r.bytes > 1000
   : r.blocks > 0 && r.inWorld && r.keys && r.upward && r.camera);
 console.log(JSON.stringify({ ok, ...results }, null, 2));
 process.exit(ok ? 0 : 1);

@@ -11,6 +11,7 @@ const TOGGLES = {
   guide: { on: () => settings.guide, set: on => setGuideShown(on) },
   sound: { on: () => settings.sound, set: on => { settings.sound = on; applySettings(); saveSettings(); return on ? 'Ses açık' : 'Ses kapalı'; } },
   shader: { on: () => shaderMode, set: setShaderMode },
+  ultra: { on: () => ultraMode, set: setUltraMode },
   fog: { on: () => settings.fog, set: setFog },
   clouds: { on: () => settings.clouds, set: setClouds },
 };

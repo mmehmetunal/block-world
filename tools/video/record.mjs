@@ -53,6 +53,11 @@ window.__video = {
   // Listeden yalnızca dünyadakinden farklı olanlar (boşa hava yazılmasın)
   changes(list) { return list.filter(([x, y, z, key]) => get(x, y, z) !== (key === 0 ? 0 : B[key])); },
   rebuild(keys) { for (const key of keys) rebuildKey(key); },
+  // Görünüm: shader ve ultra; shader değişirse bütün çevre yeniden kurulur
+  look(shader, ultra, cx, cz) {
+    if (shader !== shaderMode) { setShaderMode(shader); this.rebuildArea(cx, cz); }
+    if (ultra !== ultraMode) setUltraMode(ultra);
+  },
   // Görüş yarıçapındaki bütün chunk'ları kurar (açılışta ve shader modu değişince)
   rebuildArea(cx, cz) {
     const r = Math.ceil(VIEW_DISTANCES[settings.viewDistance] / CH);
@@ -69,6 +74,18 @@ window.__video = {
   restore() {
     for (const [key, data] of this.saved) world.get(key).set(data);
     this.rebuild(this.saved.map(([key]) => key));
+  },
+  // Hızlandırma rozeti (">> 2x"), opaklığı hıza göre yumuşakça açılıp kapanır
+  badge(text, opacity) {
+    let el = document.getElementById('video-badge');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'video-badge';
+      el.style.cssText = 'position:fixed;right:5%;top:4%;padding:0.6vw 2vw;font:6vw var(--mc-font);color:#fff;text-shadow:0.4vw 0.4vw 0 #3f3f3f;background:rgba(0,0,0,0.35);border-radius:1.5vw;pointer-events:none';
+      document.body.appendChild(el);
+    }
+    el.textContent = text;
+    el.style.opacity = opacity;
   },
   // Videonun üstündeki yazı (girişte "Shader kapalı" gibi)
   caption(text) {
@@ -149,12 +166,13 @@ async function recordScene(cdp, file) {
   const ground = await evaluate(`(async () => {
     document.getElementById('play').click();
     const style = document.createElement('style');
-    style.textContent = 'body > *:not(#game):not(#vignette):not(#video-caption) { display: none !important; }';
+    style.textContent = 'body > *:not(#game):not(#vignette):not(#video-caption):not(#video-badge) { display: none !important; }';
     document.head.appendChild(style);
     setGodMode(true); setSafeMode(true);
     Object.assign(settings, { viewDistance: ${JSON.stringify(scene.view || 'ultra')}, fog: ${!!scene.fog}, clouds: ${scene.clouds !== false}, fov: ${scene.fov || 70}, guide: false, sound: false });
     applySettings();
     if (${!!scene.shader} !== shaderMode) setShaderMode(${!!scene.shader});
+    if (${!!scene.ultra} !== ultraMode) setUltraMode(${!!scene.ultra});
     Object.assign(player, { x: ${cx} + 0.5, y: 120, z: ${cz} + 0.5, vx: 0, vy: 0, vz: 0 });
     const r = Math.ceil(VIEW_DISTANCES[settings.viewDistance] / CH);
     ensureArea(${cx}, ${cz}, r + 1);
@@ -192,6 +210,10 @@ async function recordScene(cdp, file) {
   const follow = 1 - Math.exp(-1 / (fps * 0.6));
   let placed = 0, topY = ground, smoothTop = ground;
   // Bir kareyi hazırlar: o ana kadarki blokları koyar, kamerayı ve saati ayarlar, iki kare çizilmesini bekler
+  // Hız: orta bölüm (fastFrom–fastTo, içerik oranı) scene.fast kat hızlı; giriş ve çıkış yarım saniyelik yumuşak rampa
+  const fast = scene.fast || 1, ramp = fps * 0.5, ease = v => { const x = Math.min(1, Math.max(0, v)); return x * x * (3 - 2 * x); };
+  const fastFrom = (scene.fastFrom ?? 0.06) * total, fastTo = (scene.fastTo ?? 1 - (scene.hold ?? 0.25)) * total;
+  const rateAt = c => 1 + (fast - 1) * ease((c - fastFrom) / ramp) * ease((fastTo - c) / ramp);
   const prepareFrame = async (i, snap) => {
     const built = builtAt(i), batch = all.slice(placed, built);
     for (const b of batch) if (b[3] !== 0) topY = Math.max(topY, b[1]);
@@ -207,6 +229,7 @@ async function recordScene(cdp, file) {
       clock.time = ${scene.time ?? 0.15};
       window.game.videoTime = ${(introTotal + i) / fps};
       window.game.cameraRig = ${JSON.stringify(cam)};
+      __video.badge('>> ${fast}x', ${fast > 1 ? ((rateAt(i) - 1) / (fast - 1)).toFixed(3) : 0});
       await __video.frames(2);
     })()`);
   };
@@ -224,7 +247,7 @@ async function recordScene(cdp, file) {
     const seg = intro.segments.find(sg => t <= sg.until) || intro.segments[intro.segments.length - 1];
     const cam = intro.camera(t, { ...ctx, progress: 1, topY: finalTop });
     await evaluate(`(async () => {
-      if (${!!seg.shader} !== shaderMode) { setShaderMode(${!!seg.shader}); __video.rebuildArea(${cx}, ${cz}); }
+      __video.look(${!!seg.shader}, ${!!seg.ultra}, ${cx}, ${cz});
       __video.caption(${JSON.stringify(seg.caption || '')});
       clock.time = ${scene.time ?? 0.15};
       window.game.videoTime = ${j / fps};
@@ -235,7 +258,7 @@ async function recordScene(cdp, file) {
   const endIntro = () => evaluate(`(async () => {
     __video.restore();
     __video.caption('');
-    if (${!!scene.shader} !== shaderMode) { setShaderMode(${!!scene.shader}); __video.rebuildArea(${cx}, ${cz}); }
+    __video.look(${!!scene.shader}, ${!!scene.ultra}, ${cx}, ${cz});
   })()`);
   // --intro-still t: girişin t anındaki karesi (önizleme)
   const introStill = option('intro-still', null);
@@ -272,11 +295,14 @@ async function recordScene(cdp, file) {
     for (let j = 0; j < introTotal; j++) { await introFrame(j); await capture(); }
     await endIntro();
   }
-  for (let i = 0; i < total; i++) {
-    await prepareFrame(i);
+  // Çıkış karesi başına içerikte rateAt kadar ilerlenir (2x bölümde her kare iki içerik karesi)
+  let written = 0;
+  for (let c = 0; c < total; c += rateAt(c)) {
+    await prepareFrame(c);
     await capture();
-    if (i % fps === 0) process.stdout.write(`\r${name}: ${i + 1}/${total} kare (${Math.round((Date.now() - started) / 1000)} sn)`);
+    if (written++ % fps === 0) process.stdout.write(`\r${name}: ${Math.round(c)}/${total} içerik karesi (${Math.round((Date.now() - started) / 1000)} sn)`);
   }
+  console.log(`\n${name}: ${((introTotal + written) / fps).toFixed(1)} sn video`);
   ffmpeg.stdin.end();
   await done;
   console.log(`\n${name}: ${mp4}`);
