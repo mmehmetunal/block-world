@@ -33,7 +33,7 @@ function saveGame() {
     tx.objectStore(DB_STORE).put({
       version: SAVE_VERSION,
       // Yalnızca oyuncunun değiştirdiği chunk'lar: { overworld: { "cx,cz": Uint16Array }, nether: { … } }
-      chunks: Object.fromEntries(['overworld', 'nether'].map(d => [d, Object.fromEntries([...modifiedChunks[d]].filter(k => worlds[d].has(k)).map(k => [k, worlds[d].get(k)]))])),
+      chunks: Object.fromEntries(['overworld', 'nether'].map(d => [d, Object.fromEntries([...modifiedChunks[d]].filter(k => worlds[d].has(k)).map(k => [k, trimChunk(worlds[d].get(k))]))])),
       dimension,
       portalLinks,
       player: { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch },
@@ -58,10 +58,12 @@ function saveGame() {
     };
   } catch (err) { /* kayıt yapılamazsa oyun sürer */ }
 }
-// Sürüm 1–3 kayıtları 48 blok yüksekliğinde ve 8 bit blok kimlikliydi. Hücre indeksi (y * CH + lz) * CH + lx olduğundan
+// Sürüm 1–3 kayıtları 48 blok yüksekliğinde ve 8 bit blok kimlikliydi; sürüm 4 chunk'ları kırpılmıştır. Hücre indeksi (y * CH + lz) * CH + lx olduğundan
 // eski chunk dizisi yeni dizinin başına olduğu gibi kopyalanır; üstü hava kalır.
 const LEGACY_HEIGHT = 48;
-const upgradeChunk = data => { const c = new Uint16Array(CH * SY * CH); c.set(data); return c; };
+// Kayıtta chunk'ın boş üst katmanları atılır (katmanlar y sırasıyla dizildiğinden dizi bir önektir); yüklerken tam boya tamamlanır.
+const upgradeChunk = data => { const c = new Uint16Array(CH * SY * CH); c.set(data.subarray(0, c.length)); return c; };
+const trimChunk = c => c.slice(0, chunkTop(c) * CH * CH);
 // Sürüm 1–2 kayıtlarındaki 96×96×48 tek dizi: indeks (y * 96 + z) * 96 + x. Chunk'lara bölünür, hepsi değiştirilmiş sayılır.
 const LEGACY_SIZE = 96;
 function loadLegacyWorld(data, dim) {
@@ -77,7 +79,7 @@ function loadLegacyWorld(data, dim) {
 function applySave(save) {
   if (save.version >= 3) {
     for (const dim of ['overworld', 'nether']) for (const [key, data] of Object.entries(save.chunks?.[dim] || {})) {
-      worlds[dim].set(key, save.version === SAVE_VERSION ? new Uint16Array(data) : upgradeChunk(data));
+      worlds[dim].set(key, upgradeChunk(data));
       modifiedChunks[dim].add(key);
     }
   } else {

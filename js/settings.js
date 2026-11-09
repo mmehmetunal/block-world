@@ -45,6 +45,8 @@ function loadSettings() {
       const req = db.transaction(DB_STORE).objectStore(DB_STORE).get(SETTINGS_KEY);
       req.onsuccess = () => {
         for (const key of Object.keys(settings)) if (req.result && req.result[key] !== undefined) settings[key] = req.result[key];
+        // Tanınmayan görüş mesafesi (eski ya da başka sürümün kaydı) varsayılana döner
+        if (!(settings.viewDistance in VIEW_DISTANCES)) settings.viewDistance = 'normal';
         resolve();
       };
       req.onerror = () => resolve();

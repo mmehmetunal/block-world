@@ -16,11 +16,18 @@ const chunkAt = (x, z) => world.get(chunkKey(Math.floor(x / CH), Math.floor(z / 
 const cellIndex = (x, y, z) => (y * CH + (z - Math.floor(z / CH) * CH)) * CH + (x - Math.floor(x / CH) * CH);
 // Yüklü bir chunk'ın içinde mi
 const inBounds = (x, y, z) => y >= 0 && y < SY && !!chunkAt(x, z);
-// Chunk dizisinde dolu olan en yüksek katman + 1 (çizim ve meşale taraması üstteki boş havayı atlar)
+// Chunk dizisinde dolu olan en yüksek katman + 1 (çizim ve meşale taraması üstteki boş havayı atlar).
+// Değer dizinin "top" alanında önbelleklenir; set() yükseltir, kırılan blok düşürmez (fazladan tarama zararsız).
 function chunkTop(c) {
-  for (let i = c.length - 1; i >= 0; i--) if (c[i]) return Math.floor(i / (CH * CH)) + 1;
-  return 0;
+  if (c.top === undefined) {
+    let i = c.length - 1;
+    while (i >= 0 && !c[i]) i--;
+    c.top = i < 0 ? 0 : Math.floor(i / (CH * CH)) + 1;
+  }
+  return c.top;
 }
+// (x, z) sütununda bunun üstü boştur (chunk yoksa dünyanın tepesi)
+const columnTop = (x, z) => { const c = chunkAt(x, z); return c ? chunkTop(c) : SY; };
 // Yüklenmemiş chunk hava döner; y < 0 taş (altta delik görünmesin).
 function get(x, y, z) {
   if (y < 0) return B.stone;
@@ -35,6 +42,7 @@ function set(x, y, z, v) {
   const c = chunkAt(x, z);
   if (!c) return;
   c[cellIndex(x, y, z)] = v;
+  if (v !== AIR && c.top !== undefined && y >= c.top) c.top = y + 1;
   if (generatingChunk) return;
   modifiedChunks[dimension].add(chunkKey(Math.floor(x / CH), Math.floor(z / CH)));
   if (onBlockSet) onBlockSet(x, y, z);
@@ -226,7 +234,8 @@ function generateChunk(cx, cz) {
     const chance = PLANTS[biomes[lz * CH + lx]];
     if (!chance) continue;
     const [x, z] = local(lx, lz);
-    let y = SY - 1;
+    // Ağaç ve köy yapılarının üstünden başlar (256 blokluk sütunun tamamını taramaz)
+    let y = Math.min(SY - 1, heights[lz * CH + lx] + 16);
     while (y > 0 && get(x, y - 1, z) === AIR) y--;
     if (get(x, y - 1, z) !== B.grass || get(x, y, z) !== AIR) continue;
     const r = hash(x * 3 + 11, z * 5 - 7);

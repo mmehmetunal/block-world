@@ -84,7 +84,7 @@ function hurtMob(m, amount, dirX, dirZ) {
   if (m.health <= 0) m.dying = 0.5;
 }
 function surfaceY(x, z) {
-  let y = SY - 1;
+  let y = Math.min(SY - 1, columnTop(x, z));
   while (y > 0 && passable(get(x, y - 1, z))) y--;
   return y;
 }
