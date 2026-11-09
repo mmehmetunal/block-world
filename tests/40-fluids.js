@@ -12,17 +12,17 @@ for (let y = 31; y <= 33; y++) g.setBlock(40, y, 40, 3);
 for (let cx = 1; cx <= 3; cx++) for (let cz = 1; cz <= 3; cz++) g.rebuild(cx, cz);
 await wait(300);
 const flowing = (x, y, z) => { const b = g.getBlock(x, y, z); return b === 17 || (b >= 63 && b <= 69); };
-// Bir su kaynağından boş kovayla su al
-g.setBlock(50, 31, 50, 17);
+// Bir su kaynağından boş kovayla su al: kaynak zemindeki çukurda, yanlara akamaz (akan suya çarpan nişan kovayı doldurmaz)
+g.setBlock(50, 30, 50, 17);
 g.inventory.fill(null);
 g.inventory[0] = { key: 'bucket', count: 1 };
 window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit1' }));
 const canvas = document.querySelector('#game canvas');
 const rightClick = async () => { canvas.dispatchEvent(new MouseEvent('mousedown', { button: 2, bubbles: true })); window.dispatchEvent(new MouseEvent('mouseup', { button: 2 })); await wait(100); };
-Object.assign(p, { x: 50.5, y: 31, z: 52.5, yaw: 0, pitch: -0.45, vx: 0, vz: 0 });
+Object.assign(p, { x: 50.5, y: 31, z: 52.5, yaw: 0, pitch: -0.62, vx: 0, vz: 0 });
 await wait(300);
 await rightClick();
-const filled = g.inventory[0]?.key === 'water_bucket' && g.getBlock(50, 31, 50) === 0;
+const filled = g.inventory[0]?.key === 'water_bucket' && g.getBlock(50, 30, 50) === 0;
 // Tepenin üstüne dök: tepeye bak
 Object.assign(p, { x: 40.5, y: 34, z: 42.5, yaw: 0, pitch: -0.6 });
 await wait(300);
